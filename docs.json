@@ -72,15 +72,15 @@
         "items": [
           {
             "label": "Quickstart",
-            "href": "https://docs.vigen.id/quickstart"
+            "href": "https://docs.vidgen.id/quickstart"
           },
           {
             "label": "Referensi API",
-            "href": "https://docs.vigen.id/api-reference/overview"
+            "href": "https://docs.vidgen.id/api-reference/overview"
           },
           {
             "label": "Kode error",
-            "href": "https://docs.vigen.id/troubleshooting/errors"
+            "href": "https://docs.vidgen.id/troubleshooting/errors"
           }
         ]
       }
@@ -90,12 +90,22 @@
     {
       "source": "/docs",
       "destination": "/api-reference/overview"
+    },
+    {
+      "source": "/index",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/en/index",
+      "destination": "/en",
+      "permanent": true
     }
   ],
   "seo": {
     "indexing": "navigable",
     "metatags": {
-      "canonical": "https://docs.vigen.id",
+      "canonical": "https://docs.vidgen.id",
       "og:locale": "id_ID",
       "og:site_name": "Vigen API"
     }

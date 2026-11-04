@@ -1,6 +1,6 @@
 # Vigen Docs (Mintlify)
 
-Proyek dokumentasi berdiri sendiri untuk **docs.vigen.id**. Folder ini sengaja terpisah
+Proyek dokumentasi berdiri sendiri untuk **docs.vidgen.id**. Folder ini sengaja terpisah
 dari `apps/web`: satu-satunya dependency-nya adalah Mintlify, jadi bisa di-push ke repo
 terpisah dan di-deploy tanpa menyentuh aplikasi utama.
 
@@ -59,7 +59,7 @@ node -e "JSON.parse(require('fs').readFileSync('docs.json','utf8')); console.log
    dokumentasi tidak bercampur dengan riwayat rilis aplikasi.
 2. **Import di [mintlify.com](https://www.mintlify.com)** → *Create site* → pilih repo →
    konfirmasi path root. Mintlify membaca `docs.json` dan membangun situs.
-3. **Sambungkan domain** di *Settings → Custom domain*, tambahkan `docs.vigen.id`.
+3. **Sambungkan domain** di *Settings → Custom domain*, tambahkan `docs.vidgen.id`.
 4. **Record DNS** di penyedia domain `.id` kamu:
 
    | Type | Name | Value |
@@ -68,8 +68,11 @@ node -e "JSON.parse(require('fs').readFileSync('docs.json','utf8')); console.log
 
    Sertifikat TLS dibuat otomatis setelah rekor terpropagasi. Jangan buat rekor `A`/`ALIAS`
    untuk subdomain ini; CNAME saja.
-5. Setelah domain aktif, perbarui tautan yang menunjuk ke docs di aplikasi (`apps/web`) dari
-   `/docs` internal ke `https://docs.vigen.id` — lihat bagian berikutnya.
+5. Halaman `/docs` internal di aplikasi `apps/web` sudah **dihapus** dan dibalut redirect 308
+   ke sini (`next.config.ts`). Domain docs ditulis di satu tempat, `DOCS_URL` di
+   `apps/web/src/lib/seo.ts`, dan dipakai ulang oleh sidebar, kartu API Key, dan 404.
+   Kalau domain docs berubah, samakan `DOCS_URL`, `next.config.ts`, dan
+   `docs.json` → `seo.metatags.canonical` sekaligus.
 
 ## Mengganti base URL
 
