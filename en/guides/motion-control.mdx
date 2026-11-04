@@ -1,0 +1,91 @@
+---
+title: "Motion control through the API"
+description: "Move motion from a reference video onto your own character: upload the files, set orientation, and understand how billing works."
+keywords: ["motion control", "motion transfer", "kling motion", "reference motion video"]
+---
+
+Motion control takes the **motion** from a video and applies it to the **character** in your image. The result is a new video: face and style from the image, motion from the video.
+
+## The three-file flow
+
+<Steps>
+  <Step title="Upload the motion video">
+    Include the target model id so the server applies the correct duration rules and does not trim the video.
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/upload \
+  -H "Authorization: Bearer vg_KEY_KAMU" \
+  -F "file=@gerakan.mp4" \
+  -F "model=kling-mc-3-0-pro"
+```
+  </Step>
+  <Step title="Upload the character image">
+    The photo or illustration you want to animate. A front-facing face gives the most stable results.
+  </Step>
+  <Step title="Send a job with two references">
+    The order does not determine the role — the `type` field is what tells them apart.
+
+```json theme={null}
+{
+  "model": "kling-mc-3-0-pro",
+  "prompt": "",
+  "references": [
+    { "id": "ref_api_1762261900_gerakan.mp4", "type": "video", "url": "/api/media/..." },
+    { "id": "ref_api_1762261901_karakter.png", "type": "image", "url": "/api/media/..." }
+  ],
+  "parameters": { "orientation": "video" }
+}
+```
+  </Step>
+</Steps>
+
+## Rules that differ from regular video models
+
+| Aspect | Motion control |
+| --- | --- |
+| `prompt` | May be empty. If you leave it empty, the server fills in a neutral instruction automatically. |
+| `parameters.duration` | Ignored. Output duration = length of the reference video, re-measured on the server. |
+| Price | Follows the measured duration of the reference video, not the number you send. |
+| Reference video range | 3–30 seconds (default; some models narrow it via the catalog). |
+| `orientation: "image"` | The reference video is trimmed to a maximum of 10 seconds. |
+| `prompt` length | Maximum 2,500 characters. Anything longer is rejected before credits are deducted. |
+| Video format | Export **MP4**. WebM can leave the duration unreadable and the job is rejected. |
+
+`parameters.orientation` only applies here:
+
+- `"image"` — the output ratio follows the character image.
+- `"video"` — the output ratio follows the motion video.
+
+Any other value (or this key sent to a non-motion model) is ignored without an error.
+
+<Warning>
+  If the server replies `Durasi video referensi tidak bisa dibaca`, the file is not a valid MP4 or its stream has no length metadata. Transcode it:
+
+```bash theme={null}
+ffmpeg -i gagal.webm -c:v libx264 -preset veryfast -crf 20 -movflags +faststart keluar.mp4
+```
+</Warning>
+
+## Why you cannot set the duration yourself
+
+Motion control billing is calculated from the length of the motion video that was actually processed. If the server trusted the client's `duration` value, a 30-second video could be billed as 3 seconds. That is why the duration is re-measured from the stored file and the value you send is overwritten.
+
+In practice: if you need a 6-second output, cut the reference video to 6 seconds before uploading it.
+
+## Check-list before you send
+
+<AccordionGroup>
+  <Accordion title="Motion video">
+    One file only. Motion clearly visible, subject stays inside the frame, stable lighting, no text burned into the picture. Duration 3–30 seconds (10 seconds if `orientation: "image"`).
+  </Accordion>
+  <Accordion title="Character image">
+    Minimum resolution of 300 px on the shortest side, front-facing face, not covered by objects, style consistent with what you want in the final result. One character image at most for the sharpest result.
+  </Accordion>
+  <Accordion title="Cost">
+    Check first: `GET /api/v1/user/credits` for the balance, then read the motion model's per-second price in the catalog. The reference video's duration determines the bill, so a longer video means more credits.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Motion control models can be disabled at any time. If you receive a `409`, do not try other spellings — refetch `GET /api/v1/models` and move the request to an available model.
+</Tip>

@@ -1,0 +1,73 @@
+---
+title: "Base URL"
+description: "Origin, version prefix, and the full list of Vidgen API paths."
+keywords: ["base url", "vidgen endpoints", "https://vidgen.id/api/v1"]
+---
+
+All public endpoints live on one origin with a version prefix:
+
+```text theme={null}
+https://vidgen.id/api/v1
+```
+
+Do not add a trailing slash. `POST https://vidgen.id/api/v1/generate/` can be answered `404` by the router.
+
+## Path list
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/generate` | API key | Create a generation job. Replies `202` with `job.id`. |
+| `GET` | `/api/v1/jobs/{id}` | API key | Get a job's status and result. |
+| `POST` | `/api/v1/upload` | API key | Upload a reference file (`multipart/form-data`). |
+| `GET` | `/api/v1/models` | public | Catalog of active models + credit pricing. |
+| `GET` | `/api/v1/user/credits` | API key | Balance, Unlimited status, and usage limits. |
+
+Generated results are served through two unversioned paths on the same origin:
+
+| Path | Description |
+| --- | --- |
+| `/api/media/{filename}` | Files uploaded to or generated on the Vidgen servers. |
+| `/api/media-proxy?token=...` | Temporary link (24 hours) for media that must not be opened publicly directly. |
+
+Both are fully packaged inside the `result.url` field, so treat that value as a black box: download it, store it, do not parse it.
+
+## Where can you call it from?
+
+<Warning>
+  The Vidgen API **does not send CORS headers**. Calls from a browser on another domain are blocked, even when the key is correct. Run requests from your backend, worker, or Edge Function, then pass the result to your frontend.
+</Warning>
+
+<CodeGroup>
+
+```text Works theme={null}
+Node/Python/PHP/Go servers
+cron / worker
+Postman, Insomnia, curl
+mobile apps that call their own backend
+```
+
+```text Does not work theme={null}
+fetch() straight from React/Vue on another domain
+Google Sheets / Zapier web hooks without a proxy
+HTML scripts opened from file://
+```
+
+</CodeGroup>
+
+## Versioning
+
+`v1` is a stable namespace. Breaking changes (a field removed, a status meaning something else) are announced in advance and published as `v2`; until then `v1` keeps being served.
+
+Non-breaking changes — a new model in the catalog, new credit prices, an extra optional field in a response — can appear at any time. Design your client like this:
+
+- Ignore fields you do not recognize.
+- Read the model catalog from the server; do not hardcode it.
+- Treat `parameters` as an open enum: validate values against `GET /api/v1/models` before sending.
+
+## Backup host
+
+Some Vidgen production environments run on an alternative domain (for example `vidgen.my`). If `vidgen.id` cannot be resolved from your server, just swap the origin; every path above stays the same.
+
+When you contact support, mention the origin you are using — not the name of whatever service is behind it. Vidgen deliberately never exposes upstream provider identities in public responses, and the error messages you see have already been scrubbed.
+
+Continue to [Authentication](/en/authentication) or jump straight to the [Quickstart](/en/quickstart).

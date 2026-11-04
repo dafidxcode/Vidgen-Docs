@@ -1,0 +1,157 @@
+---
+title: "Quickstart"
+description: "Send your first generation request to the Vidgen API and fetch the result in three steps."
+keywords: ["quickstart", "vidgen api example", "curl generate video"]
+---
+
+What you need: one [API key](/en/register) starting with `vg_` and either an active credit balance or an active Unlimited package.
+
+<Steps>
+  <Step title="Create a job">
+    `POST /api/v1/generate` accepts a prompt, a model name, and a few parameters. The answer is `202 Accepted` — the job is queued, not finished.
+
+    <Tabs>
+      <Tab title="cURL">
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/generate \
+  -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "seedance-2-5-flash",
+    "prompt": "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
+    "parameters": {
+      "duration": "5",
+      "ratio": "16:9",
+      "resolution": "720p"
+    }
+  }'
+```
+
+      </Tab>
+      <Tab title="Node.js">
+
+```js theme={null}
+const res = await fetch("https://vidgen.id/api/v1/generate", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.VIDGEN_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "seedance-2-5-flash",
+    prompt: "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
+    parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+  }),
+});
+
+const { job } = await res.json();
+console.log(job.id, job.status);
+```
+
+      </Tab>
+      <Tab title="Python">
+
+```python theme={null}
+import os
+import requests
+
+res = requests.post(
+    "https://vidgen.id/api/v1/generate",
+    headers={"Authorization": f"Bearer {os.environ['VIDGEN_API_KEY']}"},
+    json={
+        "model": "seedance-2-5-flash",
+        "prompt": "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
+        "parameters": {"duration": "5", "ratio": "16:9", "resolution": "720p"},
+    },
+)
+
+job = res.json()["job"]
+print(job["id"], job["status"])
+```
+
+      </Tab>
+    </Tabs>
+
+  </Step>
+
+  <Step title="Read the response">
+    The structure is always the same:
+
+```json theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "queued",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "Seekor rubah melintasi salju tipis di pagi buta...",
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z"
+  },
+  "queue": {
+    "position": 2,
+    "status": "queued"
+  }
+}
+```
+
+    Store `job.id`. Everything that happens next is read through that id.
+
+    <Warning>
+      `creditsCharged` was already deducted at this step. If the job eventually fails, the credits are refunded automatically — but if you resend the same prompt without an `idempotencyKey`, you will pay twice.
+    </Warning>
+  </Step>
+
+  <Step title="Poll until it finishes">
+    `GET /api/v1/jobs/{jobId}` returns the latest status. Check every 5 seconds; short clips usually finish within a few minutes, but queue length plays a part.
+
+```bash theme={null}
+curl https://vidgen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
+  -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU"
+```
+
+```json theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "succeeded",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "queuePosition": null,
+    "result": {
+      "url": "https://vidgen.id/api/media-proxy?token=...",
+      "duration": 5,
+      "width": 1280,
+      "height": 720
+    },
+    "errorMessage": null,
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z",
+    "updatedAt": "2026-11-04T09:15:02.000Z"
+  }
+}
+```
+
+    Possible statuses: `queued`, `dispatching`, `processing`, `succeeded`, `failed`, `cancelled`. Until the status is `succeeded`, the `result` field is `null`.
+  </Step>
+
+  <Step title="Download and store it">
+    `result.url` is guaranteed to be publicly accessible for **24 hours**. After that the link stops working.
+
+```bash theme={null}
+curl -L -o video.mp4 "https://vidgen.id/api/media-proxy?token=..."
+```
+
+    Save the file to your own storage (S3, R2, disk) as soon as the status is `succeeded`. Do not keep the URL as your archive.
+  </Step>
+</Steps>
+
+## Common next steps
+
+- [Choose a model and parameters](/en/concepts/models) — the catalog can be read at runtime through `GET /api/v1/models`.
+- [Send reference images/video](/en/concepts/reference-media) — for face-lock, products, or motion control.
+- [Safe retries with idempotencyKey](/en/concepts/idempotency).
+- [Error code table](/en/troubleshooting/errors).

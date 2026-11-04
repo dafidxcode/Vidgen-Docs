@@ -1,0 +1,164 @@
+---
+title: "Unggah media referensi"
+description: "Unggah gambar, video, atau audio untuk dipakai sebagai referensi generate. Mengembalikan objek aset."
+keywords: ["POST /api/v1/upload", "multipart", "unggah gambar referensi", "image to video bahan"]
+api: 'POST /api/v1/upload'
+---
+
+Menyimpan satu berkas media di Vidgen dan mengembalikan objek `asset` yang bisa langsung ditempel ke `references` di [`POST /api/v1/generate`](/api-reference/generate).
+
+Endpoint ini memakai `multipart/form-data`, bukan JSON.
+
+### Authorizations
+
+<ParamField path="Authorization" type="string" required>
+  API key berformat `Bearer vg_...`.
+</ParamField>
+
+### Form data
+
+<ParamField body="file" type="binary (multipart)" required>
+  Berkas tunggal. Gambar JPG/PNG/WebP, video MP4/WebM, atau audio MP3/WAV. Maksimal 100 MB; berkas kosong ditolak. Format dikenali dari isi berkas, bukan dari ekstensi atau `Content-Type`.
+</ParamField>
+
+<ParamField body="model" type="string">
+  Id model target. Tidak wajib, tetapi menentukan aturan yang dipakai server:
+
+  - Model motion control: rentang durasi video referensi dilonggarkan jadi 3–30 detik dan **tidak** dipotong otomatis.
+  - Model lain: video di atas 15 detik dipotong menjadi ±14,5 detik, dan audio harus 2–15 detik.
+  - Beberapa jalur penyimpanan menyimpan berkas dengan cara berbeda per model.
+</ParamField>
+
+<Warning>
+  Kalau kamu mengunggah video referensi untuk motion control tanpa menyertakan `model`, server memperlakukannya sebagai video umum dan memotongnya jadi 14,5 detik.
+</Warning>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl -X POST https://vidgen.id/api/v1/upload \
+  -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
+  -F "file=@gerakan.mp4" \
+  -F "model=kling-mc-3-0-pro"
+```
+
+```js Node.js theme={null}
+const form = new FormData();
+form.append("file", new Blob([bytes], { type: "video/mp4" }), "gerakan.mp4");
+form.append("model", "kling-mc-3-0-pro");
+
+const { asset } = await (
+  await fetch("https://vidgen.id/api/v1/upload", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
+    body: form,
+  })
+).json();
+```
+
+```python Python theme={null}
+with open("gerakan.mp4", "rb") as f:
+    res = requests.post(
+        "https://vidgen.id/api/v1/upload",
+        headers={"Authorization": f"Bearer {api_key}"},
+        files={"file": f},
+        data={"model": "kling-mc-3-0-pro"},
+        timeout=180,
+    )
+
+asset = res.json()["asset"]
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean" required>
+  `true` saat berkas tersimpan.
+</ResponseField>
+
+<ResponseField name="asset" type="object" required>
+  Bawa objek ini utuh ke field `references`.
+
+  <Expandable title="isi asset" defaultOpen>
+    <ResponseField name="id" type="string" required>
+      Penanda aset. Pada jalur penyimpanan lokal berupa nama berkas di server, contoh `ref_api_1762261900_gerakan.mp4`.
+    </ResponseField>
+    <ResponseField name="url" type="string" required>
+      Lokasi media. Biasanya `/api/media/{nama-berkas}`.
+    </ResponseField>
+    <ResponseField name="file_url" type="string">
+      Sama dengan `url` pada jalur penyimpanan lokal. Pada jalur lain berisi tautan penuh.
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      `"image"`, `"video"`, atau `"audio"` — hasil penciuman isi berkas.
+    </ResponseField>
+    <ResponseField name="filename" type="string">
+      Nama berkas di penyimpanan server, **bukan** nama yang kamu kirim. Jangan bangun path darinya.
+    </ResponseField>
+    <ResponseField name="duration" type="number">
+      Detik untuk video/audio. Kunci ini **tidak muncul** saat panjangnya tidak terdeteksi (misalnya pada gambar). Nilai inilah yang menentukan durasi keluaran pada model motion control.
+    </ResponseField>
+    <ResponseField name="width" type="number">
+      Lebar terdeteksi; ikut tidak muncul bila tidak tersedia.
+    </ResponseField>
+    <ResponseField name="height" type="number">
+      Tinggi terdeteksi; ikut tidak muncul bila tidak tersedia.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+
+```json 200 theme={null}
+{
+  "success": true,
+  "asset": {
+    "id": "ref_api_1762261900_gerakan.mp4",
+    "url": "/api/media/ref_api_1762261900_gerakan.mp4",
+    "file_url": "/api/media/ref_api_1762261900_gerakan.mp4",
+    "type": "video",
+    "filename": "ref_api_1762261900_gerakan.mp4",
+    "duration": 8.42,
+    "width": 1080,
+    "height": 1920
+  }
+}
+```
+
+```json 400 — durasi di luar batas theme={null}
+{
+  "error": "Durasi Video referensi (48.0 detik) di luar batas (2-15 detik)."
+}
+```
+
+```json 413 — berkas terlalu besar theme={null}
+{
+  "error": "Ukuran berkas melebihi batas maksimal 100 MB."
+}
+```
+
+```json 429 — batas unggah tercapai theme={null}
+{
+  "error": "Batas unggah media tercapai (maksimal 60 berkas per jam). Coba lagi dalam 12 menit."
+}
+```
+
+</ResponseExample>
+
+## Batas yang ditegakkan di sini
+
+| Aspek | Aturan |
+| --- | --- |
+| Ukuran | 100 MB per berkas |
+| Laju | 60 berkas per jam per akun, dengan header `Retry-After` saat kena `429` |
+| Gambar terlalu kecil | Sisi terpendek di bawah 100 px → `400` |
+| Gambar terlalu besar | Sisi terpendek < 300 px, sisi terpanjang > 1920 px, total > 4 juta px, atau > 3 MB → dikecilkan otomatis |
+| Video/audio umum | Durasi 2–15 detik; video lebih panjang dipotong ke ±14,5 detik |
+| Motion control | Durasi 3–30 detik; `orientation: "image"` membatasi sampai 10 detik |
+| Video referensi minimum | Total piksel ≥ 300.000 dan sisi terpendek ≥ 360 px |
+| Durasi tidak terbaca (motion) | `400` — ekspor ulang sebagai MP4 |
+
+<Note>
+  Aset tidak punya tanggal kedaluwarsa yang dijanjikan ke klien. Kalau kamu perlu memakai referensi yang sama berminggu-minggu, simpan berkas aslinya di storage kamu dan unggah ulang bila perlu.
+</Note>

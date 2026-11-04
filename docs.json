@@ -1,0 +1,265 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "luma",
+  "name": "Vidgen API",
+  "description": "Dokumentasi resmi Vidgen API — generate video, gambar, dan audio lewat satu API key. Quickstart, referensi endpoint, batas pemakaian, dan pemecahan masalah.",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://vidgen.id"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#c9c4b8",
+    "light": "#e9e6df",
+    "dark": "#8f8a80"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": false
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "interaction": {
+    "drilldown": true
+  },
+  "api": {
+    "mdx": {
+      "server": "https://vidgen.id",
+      "auth": {
+        "method": "bearer"
+      }
+    }
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Ambil API Key",
+      "href": "https://vidgen.id/docs"
+    },
+    "links": [
+      {
+        "label": "Dashboard",
+        "href": "https://vidgen.id/generator"
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/vidgen"
+    },
+    "links": [
+      {
+        "header": "Produk",
+        "items": [
+          {
+            "label": "Vidgen Studio",
+            "href": "https://vidgen.id/generator"
+          },
+          {
+            "label": "Harga",
+            "href": "https://vidgen.id/#pricing"
+          },
+          {
+            "label": "Pustaka",
+            "href": "https://vidgen.id/library"
+          }
+        ]
+      },
+      {
+        "header": "Developers",
+        "items": [
+          {
+            "label": "Quickstart",
+            "href": "https://docs.vidgen.id/quickstart"
+          },
+          {
+            "label": "Referensi API",
+            "href": "https://docs.vidgen.id/api-reference/overview"
+          },
+          {
+            "label": "Kode error",
+            "href": "https://docs.vidgen.id/troubleshooting/errors"
+          }
+        ]
+      }
+    ]
+  },
+  "redirects": [
+    {
+      "source": "/docs",
+      "destination": "/api-reference/overview"
+    }
+  ],
+  "seo": {
+    "indexing": "navigable",
+    "metatags": {
+      "canonical": "https://docs.vidgen.id",
+      "og:locale": "id_ID",
+      "og:site_name": "Vidgen API"
+    }
+  },
+  "navigation": {
+    "languages": [
+      {
+        "language": "id",
+        "tabs": [
+          {
+            "tab": "Dokumentasi",
+            "icon": "book-open",
+            "groups": [
+              {
+                "group": "Mulai",
+                "pages": [
+                  "index",
+                  "quickstart",
+                  "introduction",
+                  "register",
+                  "authentication",
+                  "api-base-url"
+                ]
+              },
+              {
+                "group": "Konsep",
+                "pages": [
+                  "concepts/models",
+                  "concepts/credits",
+                  "concepts/reference-media",
+                  "concepts/concurrency-limits",
+                  "concepts/idempotency"
+                ]
+              },
+              {
+                "group": "Panduan",
+                "pages": [
+                  "guides/nodejs",
+                  "guides/python",
+                  "guides/handling-results",
+                  "guides/motion-control"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Referensi API",
+            "icon": "square-terminal",
+            "groups": [
+              {
+                "group": "Ikhtisar",
+                "pages": ["api-reference/overview"]
+              },
+              {
+                "group": "Generate",
+                "pages": [
+                  "api-reference/generate",
+                  "api-reference/get-job"
+                ]
+              },
+              {
+                "group": "Media",
+                "pages": ["api-reference/upload"]
+              },
+              {
+                "group": "Katalog & Akun",
+                "pages": ["api-reference/models", "api-reference/credits"]
+              }
+            ]
+          },
+          {
+            "tab": "Bantuan",
+            "icon": "life-buoy",
+            "groups": [
+              {
+                "group": "Pemecahan masalah",
+                "pages": [
+                  "troubleshooting/errors",
+                  "troubleshooting/faq"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "language": "en",
+        "tabs": [
+          {
+            "tab": "Documentation",
+            "icon": "book-open",
+            "groups": [
+              {
+                "group": "Get started",
+                "pages": [
+                  "en/index",
+                  "en/quickstart",
+                  "en/introduction",
+                  "en/register",
+                  "en/authentication",
+                  "en/api-base-url"
+                ]
+              },
+              {
+                "group": "Concepts",
+                "pages": [
+                  "en/concepts/models",
+                  "en/concepts/credits",
+                  "en/concepts/reference-media",
+                  "en/concepts/concurrency-limits",
+                  "en/concepts/idempotency"
+                ]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "en/guides/nodejs",
+                  "en/guides/python",
+                  "en/guides/handling-results",
+                  "en/guides/motion-control"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "API Reference",
+            "icon": "square-terminal",
+            "groups": [
+              {
+                "group": "Overview",
+                "pages": ["en/api-reference/overview"]
+              },
+              {
+                "group": "Generate",
+                "pages": [
+                  "en/api-reference/generate",
+                  "en/api-reference/get-job"
+                ]
+              },
+              {
+                "group": "Media",
+                "pages": ["en/api-reference/upload"]
+              },
+              {
+                "group": "Catalog & account",
+                "pages": ["en/api-reference/models", "en/api-reference/credits"]
+              }
+            ]
+          },
+          {
+            "tab": "Support",
+            "icon": "life-buoy",
+            "groups": [
+              {
+                "group": "Troubleshooting",
+                "pages": [
+                  "en/troubleshooting/errors",
+                  "en/troubleshooting/faq"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

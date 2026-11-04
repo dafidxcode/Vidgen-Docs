@@ -1,0 +1,271 @@
+---
+title: "Create a generation job"
+description: "Send a prompt and references to create a video or image. Returns a job id for polling."
+keywords: ["POST /api/v1/generate", "text to video", "image to video", "202 accepted"]
+api: 'POST /api/v1/generate'
+---
+
+Creates one generation job. Credits are deducted at this endpoint, and the request is answered **before** the result is ready.
+
+<Info>
+  Need the list of models you can put in the `model` field? Get it from [`GET /api/v1/models`](/en/api-reference/models). The valid `parameters` values also depend on the model.
+</Info>
+
+### Authorizations
+
+<ParamField path="Authorization" type="string" required>
+  API key formatted `Bearer vg_...`. You can also use the `x-api-key` header.
+</ParamField>
+
+### Request body
+
+<ParamField body="model" type="string" required>
+  Model id from the catalog, for example `seedance-2-5-flash`. Spellings with dots and hyphens are treated the same. A model that exists but is currently disabled is answered `409`.
+</ParamField>
+
+<ParamField body="prompt" type="string">
+  A description of what you want created. **Required** except for motion control models, which may leave it empty because the server fills in a neutral instruction. Maximum 2,500 characters for motion models.
+
+  The prompt passes through content filtering first; sensitive words, public figures, or indications of abuse are removed before the request is forwarded. Some models sold openly without filtering are recognizable by their id (`spicy`, `nsfw`) and are not filtered.
+</ParamField>
+
+<ParamField body="parameters" type="object" default="{}">
+  Output settings. Only recognized keys are processed; other keys are ignored without an error.
+
+  <Expandable title="recognized properties">
+    <ParamField body="duration" type="string">
+      Duration in seconds, e.g. `"5"` or `"30"`. A trailing `s` is accepted and stripped. Validated against `capabilities.durations`. **Ignored on motion control models.**
+    </ParamField>
+    <ParamField body="resolution" type="string">
+      Resolution, e.g. `"720p"`, `"1080p"`, `"1K"`, `"2K"`, `"4K"`. Validated against `capabilities.resolutions`.
+    </ParamField>
+    <ParamField body="ratio" type="string">
+      Aspect ratio: `"16:9"`, `"9:16"`, `"1:1"`, `"4:3"`, `"3:4"`, or `"auto"`. `aspect_ratio` is accepted as an alias.
+    </ParamField>
+    <ParamField body="quality" type="string">
+      For image models that have `capabilities.qualities` (`low`, `medium`, `high`, `max`). Ignored if the model does not support it.
+    </ParamField>
+    <ParamField body="background" type="string">
+      For image models that have `capabilities.backgrounds` (`auto`, `transparent`, `opaque`).
+    </ParamField>
+    <ParamField body="output_format" type="string">
+      Output format; `format` is accepted as an alias. Only used if the model has `capabilities.outputFormats`.
+    </ParamField>
+    <ParamField body="negative_prompt" type="string">
+      What you do not want. Only forwarded if `capabilities.supportsNegativePrompt`.
+    </ParamField>
+    <ParamField body="seed" type="string">
+      Random seed for reproducible results. Only forwarded if `capabilities.supportsSeed`.
+    </ParamField>
+    <ParamField body="orientation" type="string">
+      Motion control only: `"image"` (output ratio follows the character image) or `"video"` (output ratio follows the motion video). Other values are ignored.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="references" type="array<object>">
+  Input material: character images, products, or motion videos. Each object can be an asset from [`POST /api/v1/upload`](/en/api-reference/upload) **or** a public URL.
+
+  <Expandable title="reference object">
+    <ParamField body="id" type="string">
+      Asset id from the upload endpoint. If present, this object is used as-is (also send `url`, `file_url`, and `filename` exactly as you received them).
+    </ParamField>
+    <ParamField body="url" type="string">
+      A public media URL (`http` or `https`) that the server will download with a 20 second timeout. Download failures are answered `400`.
+    </ParamField>
+    <ParamField body="type" type="string">
+      `"image"`, `"video"`, or `"audio"`. May be omitted — the server detects it from the file contents. Maximum counts per type depend on the model (defaults: 9 images / 1 video / 1 audio; image models allow 10 images and no video or audio).
+    </ParamField>
+    <ParamField body="filename" type="string">
+      File name in server storage. Follow the exact value from the upload response.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="idempotencyKey" type="string">
+  Minimum 8 characters. The same key returns the existing job with `200` and `idempotent: true`, without a second credit deduction. Below 8 characters, your value is ignored and the server generates its own key. See [Idempotency](/en/concepts/idempotency).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl -X POST https://vidgen.id/api/v1/generate \
+  -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "seedance-2-5-flash",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+    "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" },
+    "idempotencyKey": "order-4711-a39f2c7b"
+  }'
+```
+
+```js Node.js theme={null}
+const res = await fetch("https://vidgen.id/api/v1/generate", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.VIDGEN_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "seedance-2-5-flash",
+    prompt: "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+    parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+    idempotencyKey: "order-4711-a39f2c7b",
+  }),
+});
+
+console.log(res.status, await res.json());
+```
+
+```python Python theme={null}
+res = requests.post(
+    "https://vidgen.id/api/v1/generate",
+    headers={"Authorization": f"Bearer {api_key}"},
+    json={
+        "model": "seedance-2-5-flash",
+        "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+        "parameters": {"duration": "5", "ratio": "16:9", "resolution": "720p"},
+        "idempotencyKey": "order-4711-a39f2c7b",
+    },
+)
+
+print(res.status_code, res.json())
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean">
+  `true` on every successful response.
+</ResponseField>
+
+<ResponseField name="job" type="object" required>
+  The job object.
+
+  <Expandable title="job properties" defaultOpen>
+    <ResponseField name="id" type="string" required>
+      The id to poll at `GET /api/v1/jobs/{id}`.
+    </ResponseField>
+    <ResponseField name="status" type="string" required>
+      `"queued"` for a new job. Other values: `dispatching`, `processing`, `succeeded`, `failed`, `cancelled`.
+    </ResponseField>
+    <ResponseField name="model" type="string">
+      Model id that was used.
+    </ResponseField>
+    <ResponseField name="category" type="string">
+      `"Video"`, `"Image"`, or `"Audio"`.
+    </ResponseField>
+    <ResponseField name="prompt" type="string">
+      The prompt **after** content filtering. This is what was actually processed.
+    </ResponseField>
+    <ResponseField name="creditsCharged" type="number" required>
+      Credits deducted. `0` when the Unlimited quota covered it.
+    </ResponseField>
+    <ResponseField name="createdAt" type="string (ISO 8601)">
+      When the job was created, UTC.
+    </ResponseField>
+    <ResponseField name="result" type="object | null">
+      Only populated on an idempotent replay of an already finished job; always `null` for a new job.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="queue" type="object">
+  Queue information at the moment the request was made.
+
+  <Expandable title="contents of queue">
+    <ResponseField name="position" type="number">
+      Position in the queue. `0` means it is being processed or the position is not reported.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Mirrors the job status, usually `"queued"`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="idempotent" type="boolean">
+  Only present when the same key was already used and the original job is being returned.
+</ResponseField>
+
+<ResponseExample>
+
+```json 202 — new job theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "queued",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z"
+  },
+  "queue": { "position": 2, "status": "queued" }
+}
+```
+
+```json 200 — idempotent replay theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "succeeded",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+    "result": { "url": "https://vidgen.id/api/media-proxy?token=..." },
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z"
+  },
+  "queue": { "position": 0 },
+  "idempotent": true
+}
+```
+
+```json 402 — not enough credits theme={null}
+{
+  "error": "Kredit akun tidak mencukupi. Pembuatan ini membutuhkan 10 kredit",
+  "requiredCredits": 10,
+  "currentCredits": 4
+}
+```
+
+```json 429 — all concurrent slots busy theme={null}
+{
+  "error": "Maksimal 2 proses generate bersamaan. Tunggu salah satunya selesai sebelum memulai yang baru.",
+  "maxConcurrent": 2,
+  "activeJobs": 2
+}
+```
+
+```json 400 — invalid parameter theme={null}
+{
+  "error": "Parameter tidak valid: Durasi 60s tidak didukung Seedance 2.5 Flash. Pilihan: 20s.",
+  "fields": ["Durasi 60s tidak didukung Seedance 2.5 Flash. Pilihan: 20s."]
+}
+```
+
+</ResponseExample>
+
+## What you need to know
+
+<AccordionGroup>
+  <Accordion title="Why 202 and not 200?">
+    Generation is asynchronous. `202` means the request was accepted and the queue entry is set up; you fetch the result later through the job id. The only `200` on this endpoint is an idempotent replay.
+  </Accordion>
+  <Accordion title="When are credits deducted and when do they come back?">
+    They are deducted before the job is saved. If the job fails, the cancellation fails to save, or the queue is full, the credits are refunded automatically with a refund reason recorded in the account history. You do not need to build your own refund mechanism.
+  </Accordion>
+  <Accordion title="Can a request be safely repeated?">
+    Yes, as long as you use the same `idempotencyKey` with a length of at least 8 characters. Without it, every retry is a new job with a new charge.
+  </Accordion>
+  <Accordion title="Extra fields in the body are ignored?">
+    Yes. A body sending `watermark: false` or `n: 2` produces no error, but also no effect. Only `model`, `prompt`, `parameters`, `references`, and `idempotencyKey` are read.
+  </Accordion>
+  <Accordion title="Limits that make this request get rejected">
+    Two concurrent processes (Unlimited accounts only), 50 successful videos per day, the server queue being full, or the site being under maintenance. All of them use `429` or `503`.
+  </Accordion>
+</AccordionGroup>

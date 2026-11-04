@@ -1,0 +1,100 @@
+---
+title: "Idempotency"
+description: "Resend a failed request without creating a second job and without paying twice."
+keywords: ["idempotencyKey", "retry", "duplicate request", "202 vs 200"]
+---
+
+Networks can drop in the middle of a request. Without idempotency, you cannot tell whether the request already created a job — and resending it risks a double credit deduction.
+
+`POST /api/v1/generate` accepts an `idempotencyKey` field for this case.
+
+## How to use it
+
+```json theme={null}
+{
+  "model": "seedance-2-5-flash",
+  "prompt": "...",
+  "idempotencyKey": "order-4711-a39f2c7b",
+  "parameters": { "duration": "5", "resolution": "720p", "ratio": "16:9" }
+}
+```
+
+<Steps>
+  <Step title="Create one key per business intent">
+    Not per HTTP request. If the user pressed "Generate" for order #4711, that order has one key, and every retry uses the same key.
+  </Step>
+  <Step title="Send it, and if the connection drops, repeat with the same key">
+    Keep using the same key until you receive any JSON response.
+  </Step>
+  <Step title="Understand the replay response">
+    If the server has already seen that key, you receive `200 OK` (not `202`) with the original job:
+
+```json theme={null}
+{
+  "success": true,
+  "job": { "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b", "status": "processing", "creditsCharged": 3, "result": null },
+  "queue": { "position": 1 },
+  "idempotent": true
+}
+```
+  </Step>
+</Steps>
+
+The status difference you need to handle:
+
+| Condition | Status | Marker in the body |
+| --- | --- | --- |
+| New job created | `202 Accepted` | no `idempotent` field |
+| Key already used | `200 OK` | `"idempotent": true` |
+
+<Warning>
+  A replay returns the job that **already exists**, without comparing its contents. If you send the same key with a different prompt or model, those changes are silently ignored and you only get the old job. If the request genuinely changed, it is a new request — use a new key.
+</Warning>
+
+## Key naming rules
+
+- Minimum length **8 characters**. Below that, the server ignores your value and generates its own key, so your retry is unprotected.
+- Use characters that are safe on every system: letters, digits, hyphens, underscores.
+- Combine a business id with a random part, for example `order-4711-a39f2c7b`. Key matching on the server is global, so an easily guessed key (for example `coba-1`) risks colliding with another user's key.
+- Keys never expire. Once used, they are recorded forever — so do not use a timestamp as the key if you actually want the next request to become a new job.
+
+## Example of a safe client
+
+```js theme={null}
+async function generateWithRetry(payload, { attempts = 3 } = {}) {
+  const idempotencyKey = `${payload.referenceId}-${crypto.randomUUID().slice(0, 12)}`;
+  let lastError;
+
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const res = await fetch(`${BASE}/generate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, idempotencyKey }),
+      });
+
+      // 429 = capacity: wait, then retry with the same key.
+      if (res.status === 429) {
+        lastError = await res.json();
+        await sleep(30_000 * 2 ** i);
+        continue;
+      }
+
+      // 402 and 400 are final decisions: do not retry.
+      if (res.status === 402 || res.status === 400) return { ok: false, error: await res.json() };
+
+      return { ok: res.ok, job: (await res.json()).job };
+    } catch (networkError) {
+      // The request may have arrived already. Retry with the same key.
+      lastError = networkError;
+      await sleep(2_000 * 2 ** i);
+    }
+  }
+
+  return { ok: false, error: lastError };
+}
+```
+
+<Info>
+  The `POST /api/v1/upload` endpoint and `GET` requests do not need idempotency. Every upload produces a new asset, and `GET` is already side-effect free.
+</Info>

@@ -1,0 +1,98 @@
+---
+title: "Vidgen API"
+description: "Generate video dan gambar AI lewat satu API key. Satu endpoint untuk membuat job, satu endpoint untuk mengambil hasilnya."
+keywords: ["Vidgen API", "API video AI", "generate video API", "text to video api", "dokumentasi API"]
+---
+
+Vidgen API adalah antarmuka HTTP untuk mesin generate video dan gambar Vidgen. Dengan satu API key kamu bisa membuat job, mengirim gambar atau video referensi, lalu mengambil hasil jadi — tanpa perlu membuka dashboard.
+
+<Columns cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Kirim request pertama dalam 3 menit.
+  </Card>
+  <Card title="Autentikasi" icon="key" href="/authentication">
+    Cara pakai `Authorization: Bearer` dan `x-api-key`.
+  </Card>
+  <Card title="Referensi API" icon="square-terminal" href="/api-reference/overview">
+    Semua endpoint, parameter, dan bentuk respons.
+  </Card>
+  <Card title="Batas pemakaian" icon="gauge" href="/concepts/concurrency-limits">
+    Konkurensi, kuota harian, dan umur job.
+  </Card>
+</Columns>
+
+## Cara kerjanya
+
+Vidgen API bersifat **asinkron**. Sebuah request `POST /api/v1/generate` langsung dijawab `202 Accepted` berisi `job.id`, lalu hasilnya diambil dengan `GET /api/v1/jobs/{id}` sampai statusnya `succeeded`.
+
+<Steps>
+  <Step title="Kirim prompt + model">
+    Pilih model dari katalog (contoh: `seedance-2-5-flash`), tulis prompt, atur durasi/rasio/resolusi lewat `parameters`.
+  </Step>
+  <Step title="Server memasukkan antrean">
+    Kredit dipotong di awal, job masuk antrean, dan kamu menerima `job.id` beserta posisi antrean.
+  </Step>
+  <Step title="Polling sampai selesai">
+    Cek status tiap 5 detik. Selama status `queued` kamu melihat `queuePosition`; saat `succeeded` kamu mendapat URL media.
+  </Step>
+  <Step title="Unduh hasilnya">
+    Simpan URL-nya ke storage kamu sendiri. Tautan hasil punya masa berlaku terbatas, jadi jangan bergantung padanya sebagai sumber permanen.
+  </Step>
+</Steps>
+
+## Mulai dalam 3 langkah
+
+<Steps>
+  <Step title="Buat API key">
+    Masuk ke [vidgen.id → Dokumentasi](https://vidgen.id/docs), klik **Buat API Key**, lalu salin nilainya. Key berformat `vg_...` dan hanya ditampilkan satu kali.
+  </Step>
+  <Step title="Kirim permintaan pertama">
+
+```bash create curl
+curl -X POST https://vidgen.id/api/v1/generate \
+  -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "seedance-2-5-flash",
+    "prompt": "Kopi susu di meja kayu, cahaya pagi menembus jendela, kamera bergerak pelan ke kanan",
+    "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" }
+  }'
+```
+
+  </Step>
+  <Step title="Ambil hasilnya">
+
+```bash poll curl
+curl https://vidgen.id/api/v1/jobs/JOB_ID \
+  -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU"
+```
+
+  </Step>
+</Steps>
+
+## Jelajahi dokumentasi
+
+<Columns cols={2}>
+  <Card title="Katalog model" icon="layers" href="/concepts/models">
+    Model aktif, kemampuan, dan cara membacanya dari runtime.
+  </Card>
+  <Card title="Kredit & harga" icon="coins" href="/concepts/credits">
+    Cara tagihan dihitung dan kapan paket Unlimited memotong 0 kredit.
+  </Card>
+  <Card title="Media referensi" icon="upload" href="/concepts/reference-media">
+    Batas ukuran, durasi, dan resolusi berkas referensi.
+  </Card>
+  <Card title="Idempotensi" icon="shield-check" href="/concepts/idempotency">
+    Jangan kena tagihan ganda saat retry.
+  </Card>
+  <Card title="Node.js" icon="file-code" href="/guides/nodejs">
+    Klien lengkap tanpa dependensi tambahan.
+  </Card>
+  <Card title="Python" icon="file-code" href="/guides/python">
+    Helper `generate()` + `wait_for_job()`.
+  </Card>
+</Columns>
+
+<Tip>
+  Butuh bantuan? Kirim pesan dukungan lewat dashboard Vidgen atau baca [kode error](/troubleshooting/errors) lebih dulu.
+</Tip>

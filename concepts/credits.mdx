@@ -1,0 +1,94 @@
+---
+title: "Kredit & harga"
+description: "Bagaimana biaya satu generate dihitung, kapan kredit dikembalikan, dan apa yang ditanggung paket Unlimited."
+keywords: ["harga kredit vidgen", "tagihan api", "unlimited", "402 payment required"]
+---
+
+## Potongan kredit terjadi di awal
+
+Saat `POST /api/v1/generate` diterima, kredit langsung dipotong sebelum job masuk antrean. Kalau job berakhir `failed`, kredit dikembalikan otomatis. Kamu tidak menanggung biaya kegagalan mesin.
+
+Yang **tidak** dikembalikan: job yang kamu batalkan sendiri setelah berhasil terkirim, dan request yang ditolak sebelum job dibuat (karena itu memang tidak pernah memotong apa pun).
+
+## Cara harga dihitung
+
+Server mencari harga dengan urutan berikut, berhenti di kecocokan pertama:
+
+<Steps>
+  <Step title="`quality:resolution`">
+    Untuk model gambar yang punya kedua kunci itu, contoh `low:2K`.
+  </Step>
+  <Step title="`resolution:duration`">
+    Kombinasi seperti `720p:15`; pengecekan toleran terhadap urutan dan akhiran `s`.
+  </Step>
+  <Step title="`duration`">
+    Override tunggal per durasi, contoh `"30": 15`.
+  </Step>
+  <Step title="`resolution`">
+    Override tunggal per resolusi, contoh `"4K": 2`.
+  </Step>
+  <Step title="`creditsDefault`">
+    Harga dasar model.
+  </Step>
+</Steps>
+
+Karena itu **harga bisa beda untuk request yang tampak mirip**: `resolution: "720p", duration: "30"` bisa lebih mahal daripada `duration: "15"`.
+
+<Info>
+  Angka harga diatur admin dan bisa berubah. Satu-satunya sumber kebenaran adalah `priceMatrix` dan `creditsDefault` dari `GET /api/v1/models` — jangan salin tabel harga ke kode kamu.
+</Info>
+
+## Biaya referensi
+
+Menambah gambar atau video referensi tidak menambah harga pada saat ini (`referenceSurcharge` bernilai 0). Untuk model motion control, durasi video referensi justru menentukan durasi keluaran — dan durasi itulah yang ditagih.
+
+## Kredit tidak cukup
+
+```json theme={null}
+{
+  "error": "Kredit akun tidak mencukupi. Pembuatan ini membutuhkan 10 kredit",
+  "requiredCredits": 10,
+  "currentCredits": 4
+}
+```
+
+Status `402`. Tidak ada job yang dibuat, tidak ada kredit yang terpakai. Cara paling hemat menghindari error ini adalah membaca saldo sebelum mengirim batch — lihat [`GET /api/v1/user/credits`](/api-reference/credits).
+
+## Paket Unlimited
+
+Pembelian Unlimited memberi kuota waktu, bukan saldo kredit. Saat aktif, generate pada **model yang memenuhi syarat** memotong 0 kredit dan field `creditsCharged` di respons bernilai `0`.
+
+Ada batasnya:
+
+- Hanya model video/gambar tertentu yang ikut kuota Unlimited. Model lain tetap memotong kredit normal walaupun akunmu Unlimited. Cek eligibility dengan `unlimited.active` di `/api/v1/user/credits`, lalu cocokkan model lewat dashboard.
+- Maksimal **2 proses bersamaan**. Yang ketiga dijawab `429`.
+- Kuota harian video tetap berlaku (50 video sukses per hari).
+
+## Bayar dan cek saldo
+
+Pulsa kredit lewat [dashboard](https://vidgen.id/billing) (QRIS). Pemantauan saldo sebaiknya dilakukan di servermu, bukan di frontend:
+
+```bash theme={null}
+curl https://vidgen.id/api/v1/user/credits \
+  -H "Authorization: Bearer vg_KEY_KAMU"
+```
+
+```json theme={null}
+{
+  "success": true,
+  "user": { "uid": "...", "email": "...", "credits": 128 },
+  "unlimited": { "active": false, "daysLeft": 0, "expiresAt": null },
+  "limits": {
+    "maxConcurrentJobs": 2,
+    "currentActiveJobs": 0,
+    "dailyVideoLimit": 50,
+    "dailyVideosGenerated": 12,
+    "dailyVideosRemaining": 38,
+    "resetsAt": "00:00 WIB"
+  }
+}
+```
+
+<Warning>
+  `credits` bisa berupa angka pecahan (misalnya 1.5) karena beberapa model gambar berharga di bawah satu kredit. Jangan bulatkan ke bawah di sisi kamu sebelum membandingkan dengan harga.
+</Warning>

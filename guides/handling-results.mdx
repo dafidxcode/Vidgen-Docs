@@ -1,0 +1,98 @@
+---
+title: "Menangani hasil"
+description: "Mengunduh, menyimpan, dan mengarsipkan keluaran Vidgen API sebelum tautannya kedaluwarsa."
+keywords: ["result url", "media proxy", "unduh video", "24 jam", "simpan hasil"]
+---
+
+## Dua bentuk tautan hasil
+
+`result.url` bisa datang dalam dua rupa. Keduanya sama-sama valid dan berada di origin yang sama dengan API:
+
+```text theme={null}
+https://vidgen.id/api/media/nama-berkas.mp4
+https://vidgen.id/api/media-proxy?token=acak-32-karakter
+```
+
+<Warning>
+  Bentuk kedua memakai token dengan masa berlaku **24 jam**. Setelah itu tautan mati permanen, bahkan kalau job-nya masih tercatat. Jangan pernah menyimpan URL sebagai arsip hasil.
+</Warning>
+
+Perlakukan kedua bentuk sebagai bola hitam: unduh apa adanya, jangan tebak ekstensi dari path, jangan buang query string-nya.
+
+## Unduh dan simpan sendiri
+
+```js theme={null}
+const res = await fetch(job.result.url);
+if (!res.ok) throw new Error(`gagal mengunduh: ${res.status}`);
+
+const key = `vidgen/${job.id}.mp4`;
+await storage.put(key, await res.arrayBuffer(), {
+  contentType: res.headers.get("content-type") ?? "video/mp4",
+  metadata: { jobId: job.id, model: job.model, prompt: job.prompt },
+});
+```
+
+```python theme={null}
+data = requests.get(job["result"]["url"], timeout=300)
+data.raise_for_status()
+
+with open(f"{job['id']}.mp4", "wb") as f:
+    f.write(data.content)
+```
+
+<Tip>
+  Simpan segera setelah status `succeeded`. Cara paling andal adalah menugaskannya ke worker: job polling menandai status akhir, lalu worker unduhan mengambil alih.
+</Tip>
+
+## Metadata yang bisa kamu percaya
+
+```json theme={null}
+"result": {
+  "url": "https://vidgen.id/api/media-proxy?token=...",
+  "duration": 5,
+  "width": 1280,
+  "height": 720
+}
+```
+
+| Field | Catatan |
+| --- | --- |
+| `duration` | Detik, bisa `null` untuk keluaran gambar. |
+| `width`, `height` | Resolusi aktual keluaran. Tidak selalu sama persis dengan `parameters.resolution` yang diminta. |
+
+`result` hanya terisi saat `status === "succeeded"`. Pada status lain nilainya `null` — cek status dulu, baru baca `result`.
+
+## Saat job gagal
+
+```json theme={null}
+{
+  "status": "failed",
+  "result": null,
+  "errorMessage": "Queue temporarily throttled due to repeated submission of high-risk content. Please wait 1-2 minutes, adjust your prompt, and try again.",
+  "creditsCharged": 0
+}
+```
+
+- `errorMessage` sudah dibersihkan dan **berbahasa Inggris** di respons API. Terjemahkan ke bahasa UI-mu sendiri, atau tampilkan apa adanya.
+- Kredit yang sudah dipotong dikembalikan otomatis, sehingga `creditsCharged` pada job gagal akhirnya bernilai `0`. Jangan membuat sistem refund sendiri di sisi kamu.
+- Pesan gagal sengaja tidak menyebut sistem dalam Vidgen. Kalau mendukung pengguna, minta `job.id`-nya, bukan log mentah.
+
+<Accordion title="Pola pesan error yang umum">
+
+| Pesan | Artinya | Yang harus dilakukan |
+| --- | --- | --- |
+| `...sensitive words, restricted figures...` | Prompt atau referensi kena filter keamanan. | Minta pengguna memakai kata netral, lalu kirim sebagai job baru. |
+| `Reference video duration is not supported...` | Video referensi di luar rentang model. | Pakai video 3-30 detik, atau 10 detik ke bawah untuk orientasi gambar. |
+| `Failed to align character with video motion...` | Deteksi wajah/gerakan tidak cocok. | Ganti foto karakter: menghadap depan, cahaya cukup. |
+| `This model is temporarily unavailable on our side.` | Sedang bermasalah di sisi Vidgen. | Coba model lain atau tunda 5-10 menit. |
+| `The processing service is temporarily undergoing maintenance.` | Kapasitas sedang diperbaiki. | Tunda; jangan dibebankan sebagai kegagalan pengguna. |
+
+</Accordion>
+
+## Kebijakan hasil
+
+Hak atas hasil, privasi, penyaringan konten, dan penggunaan komersial diatur oleh ketentuan layanan Vidgen — dokumen ini tidak menggantikannya. Beberapa model juga punya batasan sendiri yang tercantum di dashboard. Watermark mengikuti paket yang aktif di akunmu, jadi cek halaman harga kalau kamu menjanjikan berkas bersih ke pengguna akhir.
+
+## Jejak audit
+
+Setiap job menyimpan `id`, `model`, `prompt`, `creditsCharged`, `createdAt`, dan `updatedAt`. Simpan `job.id` di basis data kamu bersama record bisnis (order, pengguna, campaign) supaya kamu bisa mencocokkan tagihan dan membuka tiket dukungan dengan referensi yang jelas.

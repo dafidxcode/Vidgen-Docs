@@ -1,0 +1,141 @@
+---
+title: "Python"
+description: "Klien Vidgen API dengan requests: buat job, unggah referensi, polling hasil."
+keywords: ["python", "vidgen sdk python", "requests client"]
+---
+
+Butuh Python 3.9+ dan `requests`.
+
+```bash theme={null}
+pip install requests
+```
+
+```python vidgen.py theme={null}
+import os
+import time
+from typing import Any
+
+import requests
+
+BASE = "https://vidgen.id/api/v1"
+
+
+class VidgenError(RuntimeError):
+    def __init__(self, status: int, body: dict[str, Any] | None):
+        self.status = status
+        self.body = body or {}
+        super().__init__(self.body.get("error") or f"HTTP {status}")
+
+
+class Vidgen:
+    def __init__(self, api_key: str | None = None):
+        self.session = requests.Session()
+        self.session.headers["Authorization"] = f"Bearer {api_key or os.environ['VIDGEN_API_KEY']}"
+
+    def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
+        res = self.session.request(method, f"{BASE}{path}", timeout=kwargs.pop("timeout", 120), **kwargs)
+        try:
+            payload = res.json()
+        except ValueError:
+            payload = None
+        if not res.ok:
+            raise VidgenError(res.status_code, payload)
+        return payload
+
+    def generate(self, model: str, prompt: str, **kwargs: Any) -> dict[str, Any]:
+        body = {"model": model, "prompt": prompt, **kwargs}
+        return self._request("POST", "/generate", json=body)["job"]
+
+    def job(self, job_id: str) -> dict[str, Any]:
+        return self._request("GET", f"/jobs/{job_id}")["job"]
+
+    def upload(self, path: str, model: str | None = None) -> dict[str, Any]:
+        files = {"file": open(path, "rb")}
+        data = {"model": model} if model else None
+        try:
+            return self._request("POST", "/upload", files=files, data=data)["asset"]
+        finally:
+            files["file"].close()
+
+    def credits(self) -> dict[str, Any]:
+        return self._request("GET", "/user/credits")
+
+    def models(self) -> dict[str, Any]:
+        return self._request("GET", "/models")["models"]
+
+    def wait_for_job(
+        self,
+        job_id: str,
+        interval: float = 5.0,
+        cap: float = 30.0,
+        timeout: float = 2 * 60 * 60,
+    ) -> dict[str, Any]:
+        deadline = time.monotonic() + timeout
+        delay = interval
+        while True:
+            job = self.job(job_id)
+            if job["status"] in {"succeeded", "failed", "cancelled"}:
+                return job
+            if time.monotonic() + delay > deadline:
+                return job
+            time.sleep(delay)
+            delay = min(delay * 1.6, cap)
+```
+
+## Pemakaian
+
+```python theme={null}
+import uuid
+
+import requests
+
+from vidgen import Vidgen, VidgenError
+
+api = Vidgen()
+
+asset = api.upload("karakter.png", model="seedance-2-5-flash")
+
+job = api.generate(
+    "seedance-2-5-flash",
+    prompt="karakter ini melambaikan tangan ke kamera, latar studio lembut",
+    references=[asset],
+    parameters={"duration": "5", "ratio": "16:9", "resolution": "720p"},
+    idempotencyKey=f"batch-7-{uuid.uuid4().hex[:12]}",
+)
+
+hasil = api.wait_for_job(job["id"])
+
+if hasil["status"] == "succeeded":
+    with open(f"hasil-{hasil['id']}.mp4", "wb") as f:
+        f.write(requests.get(hasil["result"]["url"], timeout=300).content)
+```
+
+<Warning>
+  Nama field di body JSON adalah `idempotencyKey` (huruf besar di tengah), bukan `idempotency_key`. Salah tulis berarti server membuat key sendiri dan retry kamu tidak terlindungi.
+</Warning>
+
+## Pola batch
+
+```python theme={null}
+def generate_batch(prompts: list[str], model: str) -> list[dict]:
+    sisa = api.credits()["limits"]["dailyVideosRemaining"]
+    aktif = api.credits()["limits"]["currentActiveJobs"]
+    jatah = min(sisa, max(0, api.credits()["limits"]["maxConcurrentJobs"] - aktif))
+
+    jobs = []
+    for prompt in prompts[:jatah]:
+        try:
+            jobs.append(api.generate(model, prompt=prompt, parameters={"duration": "5"}))
+        except VidgenError as err:
+            if err.status in (402, 409):
+                break
+            if err.status == 429:
+                time.sleep(30)
+            else:
+                raise
+    return jobs
+```
+
+<Tip>
+  Untuk layanan async (FastAPI, Django), panggil `wait_for_job` di worker terpisah, bukan di request handler — dua jam polling akan menghabiskan koneksi.
+</Tip>

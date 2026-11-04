@@ -1,0 +1,67 @@
+---
+title: "Buat akun & API key"
+description: "Daftar akun Vidgen, isi kredit, lalu buat API key untuk dipakai dari server kamu."
+keywords: ["daftar vidgen", "buat api key", "vg_ key"]
+---
+
+## 1. Masuk
+
+Vidgen memakai **Masuk dengan Google**. Buka [vidgen.id](https://vidgen.id) dan klik tombol masuk di kanan atas. Tidak ada pendaftaran manual lewat API.
+
+Akun baru bisa langsung dipakai begitu kamu membuat API key. Jumlah kredit awal diatur dari sisi admin, jadi cek saldonya lewat [`GET /api/v1/user/credits`](/api-reference/credits) sebelum mengirim request pertama.
+
+## 2. Isi kredit
+
+Bayar lewat QRIS di [vidgen.id/billing](https://vidgen.id/billing). Ada dua jenis paket:
+
+- **Paket kredit** — dipotong per generate.
+- **Paket Unlimited** — kuota harian tanpa potongan kredit untuk model tertentu; tersedia 1 hari (Rp 10.000), 7 hari, dan 30 hari.
+
+Setelah pembayaran terkonfirmasi, saldo langsung berubah. Cek lewat `GET /api/v1/user/credits` tanpa perlu memuat dashboard.
+
+## 3. Buat API key
+
+Buka [vidgen.id/docs](https://vidgen.id/docs) dan gunakan panel **API Keys**:
+
+<Steps>
+  <Step title="Klik Buat API Key">
+    Beri nama yang mengenali lingkungannya, misalnya `production-server` atau `laptop-rina`.
+  </Step>
+  <Step title="Salin key-nya">
+    Key berformat `vg_` + 32 karakter heksadesimal, contoh `vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912`.
+
+    <Danger>
+      Nilai lengkap hanya ditampilkan **satu kali**. Server menyimpan hash SHA-256-nya, jadi kami tidak bisa menampilkan ulang. Kalau hilang, buat key baru dan cabut yang lama.
+    </Danger>
+  </Step>
+  <Step title="Simpan sebagai secret">
+    Letakkan di variabel lingkungan, bukan di kode sumber.
+
+```bash theme={null}
+# .env — jangan ikut ter-commit
+VIDGEN_API_KEY=vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912
+```
+  </Step>
+</Steps>
+
+## 4. Cabut key
+
+Key bisa dicabut kapan saja dari panel yang sama. Pencabutan langsung berlaku: request berikutnya dijawab `401` dengan error `API Key tidak valid atau telah dicabut.`
+
+Cabut segera kalau:
+
+- key pernah muncul di log, screenshot, atau repo publik;
+- karyawan atau lingkungan yang memakainya sudah tidak aktif;
+- kamu melihat pemakaian aneh di `lastUsedAt`.
+
+## Cara kerja key di server
+
+| Sifat | Perilaku |
+| --- | --- |
+| Penyimpanan | Hanya hash SHA-256 yang disimpan; raw key tidak pernah tertinggal di database. |
+| Pengenalan akun | Key selalu terikat ke satu akun; job, kredit, dan pustaka milik akun itu. |
+| Batas | Key tidak punya batas sendiri. Batas berlaku per akun: konkurensi, kuota harian, saldo kredit. |
+| Aktivitas | Setiap request memakai key akan memperbarui `lastUsedAt`. |
+| Maintenance | Saat situs ditutup sementara, semua key ikut ditolak dengan `503`. |
+
+Selanjutnya: [Autentikasi](/authentication).

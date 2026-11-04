@@ -1,0 +1,230 @@
+---
+title: "Get job status"
+description: "Poll the status of a generation job, read the queue position, and fetch the result URL."
+keywords: ["GET /api/v1/jobs", "polling", "job status", "result url"]
+api: 'GET /api/v1/jobs/{id}'
+---
+
+Returns the latest state of a job. Calling this endpoint on a job that is `processing` also makes Vidgen check the provider behind the scenes, so polling is the only signal you need.
+
+<Warning>
+  A job can only be read by the account that owns it. A job belonging to another account is answered `403`, not `404`.
+</Warning>
+
+### Authorizations
+
+<ParamField path="Authorization" type="string" required>
+  API key formatted `Bearer vg_...`.
+</ParamField>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  The `job.id` from the [`POST /api/v1/generate`](/en/api-reference/generate) response, for example `9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b`.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl https://vidgen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
+  -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
+```
+
+```js Node.js theme={null}
+const res = await fetch(`https://vidgen.id/api/v1/jobs/${jobId}`, {
+  headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
+});
+
+const { job } = await res.json();
+console.log(job.status, job.queuePosition, job.result?.url);
+```
+
+```python Python theme={null}
+job = requests.get(
+    f"https://vidgen.id/api/v1/jobs/{job_id}",
+    headers={"Authorization": f"Bearer {api_key}"},
+).json()["job"]
+
+print(job["status"], job["result"])
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean" required>
+  `true` as long as the job can be read, including when the job is `failed`.
+</ResponseField>
+
+<ResponseField name="job" type="object" required>
+  <Expandable title="job properties" defaultOpen>
+    <ResponseField name="id" type="string" required>
+      The id you requested.
+    </ResponseField>
+    <ResponseField name="status" type="string" required>
+      One of `queued`, `dispatching`, `processing`, `succeeded`, `failed`, `cancelled`.
+    </ResponseField>
+    <ResponseField name="model" type="string">
+      Model id.
+    </ResponseField>
+    <ResponseField name="category" type="string">
+      `"Video"`, `"Image"`, or `"Audio"`.
+    </ResponseField>
+    <ResponseField name="prompt" type="string">
+      The stored prompt after filtering.
+    </ResponseField>
+    <ResponseField name="queuePosition" type="number | null">
+      Queue position. Only has a value while `status === "queued"`; `null` otherwise, including when the position cannot be read.
+    </ResponseField>
+    <ResponseField name="result" type="object | null">
+      `null` until the job succeeds. After `succeeded`:
+
+      <Expandable title="contents of result">
+        <ResponseField name="url" type="string" required>
+          Media link. Either `/api/media/...` or `/api/media-proxy?token=...` with a 24 hour lifetime.
+        </ResponseField>
+        <ResponseField name="duration" type="number | null">
+          Seconds of output, when available.
+        </ResponseField>
+        <ResponseField name="width" type="number | null">
+          Actual pixel width.
+        </ResponseField>
+        <ResponseField name="height" type="number | null">
+          Actual pixel height.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="errorMessage" type="string | null">
+      Explanation of the failure, already filtered and in English. `null` while the job has not failed.
+    </ResponseField>
+    <ResponseField name="creditsCharged" type="number" required>
+      Credits used. It reads `0` on a failed job because the credits were refunded, and `0` from the start if the Unlimited quota paid for it.
+    </ResponseField>
+    <ResponseField name="createdAt" type="string (ISO 8601)">
+      When the job was created.
+    </ResponseField>
+    <ResponseField name="updatedAt" type="string (ISO 8601)">
+      When the status last changed. Useful for spotting stalled jobs.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+
+```json 200 — still queued theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "queued",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi",
+    "queuePosition": 2,
+    "result": null,
+    "errorMessage": null,
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z",
+    "updatedAt": "2026-11-04T09:12:44.000Z"
+  }
+}
+```
+
+```json 200 — succeeded theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "succeeded",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi",
+    "queuePosition": null,
+    "result": {
+      "url": "https://vidgen.id/api/media-proxy?token=3f9c...e1a2",
+      "duration": 5,
+      "width": 1280,
+      "height": 720
+    },
+    "errorMessage": null,
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z",
+    "updatedAt": "2026-11-04T09:15:02.000Z"
+  }
+}
+```
+
+```json 200 — failed theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "failed",
+    "queuePosition": null,
+    "result": null,
+    "errorMessage": "This model is temporarily unavailable on our side. Please try again in a few minutes.",
+    "creditsCharged": 0
+  }
+}
+```
+
+```json 404 theme={null}
+{ "error": "Job tidak ditemukan." }
+```
+
+</ResponseExample>
+
+## Polling patterns
+
+<CodeGroup>
+
+```js setInterval theme={null}
+const timer = setInterval(async () => {
+  const job = (await (await fetch(url, { headers })).json()).job;
+
+  if (["succeeded", "failed", "cancelled"].includes(job.status)) {
+    clearInterval(timer);
+    onDone(job);
+  }
+}, 5000);
+
+setTimeout(() => clearInterval(timer), 2 * 60 * 60 * 1000);
+```
+
+```js backoff theme={null}
+let delay = 5000;
+for (;;) {
+  const job = (await (await fetch(url, { headers })).json()).job;
+  if (job.status !== "queued" && job.status !== "processing") return job;
+  await sleep(delay);
+  delay = Math.min(delay * 1.6, 30000);
+}
+```
+
+```python polling theme={null}
+interval = 5.0
+while True:
+    job = api.job(job_id)
+    if job["status"] in {"succeeded", "failed", "cancelled"}:
+        break
+    time.sleep(interval)
+    interval = min(interval * 1.6, 30.0)
+```
+
+```bash bash theme={null}
+while true; do
+  status=$(curl -s -H "Authorization: Bearer $VIDGEN_API_KEY" \
+    "https://vidgen.id/api/v1/jobs/$JOB_ID" | jq -r .job.status)
+  echo "$status"
+  if [ "$status" = "succeeded" ] || [ "$status" = "failed" ] || [ "$status" = "cancelled" ]; then
+    break
+  fi
+  sleep 5
+done
+```
+
+</CodeGroup>
+
+<Note>
+  This endpoint deducts no credits and may be called as often as you like — but 2 hours is the maximum job lifetime. After that the status becomes `failed` and polling should stop.
+</Note>

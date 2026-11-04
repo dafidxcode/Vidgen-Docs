@@ -1,0 +1,93 @@
+---
+title: "Autentikasi"
+description: "Kirim API key Vidgen lewat header Authorization Bearer atau x-api-key."
+keywords: ["autentikasi", "bearer token", "x-api-key", "401 unauthorized"]
+---
+
+Setiap endpoint kecuali `GET /api/v1/models` butuh API key. Key dikenali dari dua header — pilih salah satu.
+
+<CodeGroup>
+
+```bash Authorization header theme={null}
+curl https://vidgen.id/api/v1/user/credits \
+  -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
+```
+
+```bash x-api-key header theme={null}
+curl https://vidgen.id/api/v1/user/credits \
+  -H "x-api-key: vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
+```
+
+```js Node.js theme={null}
+const headers = { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` };
+
+// atau
+const headers = { "x-api-key": process.env.VIDGEN_API_KEY };
+```
+
+```python Python theme={null}
+headers = {"Authorization": f"Bearer {os.environ['VIDGEN_API_KEY']}"}
+
+# atau
+headers = {"x-api-key": os.environ["VIDGEN_API_KEY"]}
+```
+
+```js fetch (browser-safe) theme={null}
+await fetch("https://vidgen.id/api/v1/user/credits", {
+  headers: { "x-api-key": import.meta.env.VITE_VIDGEN_API_KEY },
+});
+```
+
+```js axios theme={null}
+import axios from "axios";
+
+export const vidgen = axios.create({
+  baseURL: "https://vidgen.id/api/v1",
+  headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
+});
+```
+
+</CodeGroup>
+
+## Format key
+
+- Selalu diawali `vg_`, diikuti 32 karakter heksadesimal.
+- `Bearer` tidak peka kapital (`bearer vg_...` juga diterima).
+- Prefix `vg_` wajib. Key tanpa prefix ditolak walau isinya benar.
+- Key dibuat di [halaman API key dashboard](/register); raw key hanya muncul sekali.
+
+## Kegagalan autentikasi
+
+| Status | Pesan | Penyebab |
+| --- | --- | --- |
+| `401` | `Header Authorization (Bearer vg_...) atau x-api-key diperlukan.` | Tidak ada header sama sekali. |
+| `401` | `Format API Key tidak valid. API Key Vidgen harus diawali dengan "vg_".` | Prefix salah, atau key milik layanan lain. |
+| `401` | `API Key tidak valid atau telah dicabut.` | Hash key tidak ada di database — salah ketik atau sudah dicabut. |
+| `401` | `Pengguna pemilik API Key tidak ditemukan.` | Akun pemilik key sudah dihapus. |
+| `503` | `...Vidgen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara.` | Situs sedang ditutup sementara. Coba lagi nanti. |
+| `503` | `Layanan autentikasi API Key sedang tidak tersedia.` | Layanan sesi sedang bermasalah. Ulangi dengan backoff. |
+
+<Note>
+  Semua kegagalan autentikasi memakai bentuk body yang sama: `{ "error": "..." }`. Tidak ada `code` numerik — pakai status HTTP untuk membedakan.
+</Note>
+
+## Keamanan
+
+<Check>
+  **Kirim hanya lewat HTTPS.** Key tidak boleh lewat URL `http://` atau di tempel di query string.
+</Check>
+<Check>
+  **Beri nama key per lingkungan.** `staging`, `prod-cron`, `lokal-andi` — supaya pencabutan tidak kena sistem lain.
+</Check>
+<Warning>
+  **Jangan pakai key dari dashboard di browser pengguna akhir.** Setiap request API memotong kredit akun pemilik key. Untuk produk yang dipakai banyak pengguna, simpan key di server kamu dan perbolehkan akses hanya dari sana.
+</Warning>
+<Danger>
+  **Jangan simpan key di aplikasi mobile atau bundle frontend yang bisa dibongkar.** Kalau pernah bocor, cabut dan buat baru — rotasi adalah satu-satunya cara pencabutan.
+</Danger>
+
+## Endpoint yang tidak butuh key
+
+`GET /api/v1/models` boleh dipanggil tanpa autentikasi karena hanya berisi katalog publik. Kalau aplikasimu menampilkan harga atau saldo, tetap kirim key.
+
+Lanjut ke [Base URL](/api-base-url).

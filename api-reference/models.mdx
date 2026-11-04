@@ -1,0 +1,162 @@
+---
+title: "Daftar model"
+description: "Katalog model aktif beserta harga kredit, durasi, rasio, resolusi, dan batas referensi tiap model."
+keywords: ["GET /api/v1/models", "katalog model", "harga kredit model"]
+api: 'GET /api/v1/models'
+authMethod: 'none'
+---
+
+Mengembalikan model yang sedang bisa dipakai, dikelompokkan ke `video`, `image`, dan `audio`. Model yang dinonaktifkan tidak muncul.
+
+<Info>
+  Endpoint ini **tidak memerlukan API key** karena isinya katalog publik. Halaman-halaman lain di tab ini tetap butuh key.
+</Info>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl https://vidgen.id/api/v1/models
+```
+
+```js Node.js theme={null}
+const models = await (await fetch("https://vidgen.id/api/v1/models")).json();
+
+const video = models.models.video.find((m) => m.capabilities.durations.includes("30"));
+console.log(video?.id, video?.creditsDefault, video?.priceMatrix);
+```
+
+```python Python theme={null}
+models = requests.get("https://vidgen.id/api/v1/models").json()["models"]
+
+for m in models["video"]:
+    print(m["id"], m["capabilities"]["durations"], m["creditsDefault"])
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean" required>
+  `true` saat katalog berhasil dimuat.
+</ResponseField>
+
+<ResponseField name="models" type="object" required>
+  Tiga keranjang: `video`, `image`, `audio`. Tiap-tiapnya array objek model.
+
+  <Expandable title="satu entri model" defaultOpen>
+    <ResponseField name="id" type="string" required>
+      Nilai untuk field `model` saat generate.
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Nama tampilan. Bisa berubah; jangan dijadikan kunci logika.
+    </ResponseField>
+    <ResponseField name="category" type="string">
+      `"Video"`, `"Image"`, atau `"Audio"`.
+    </ResponseField>
+    <ResponseField name="mode" type="string">
+      `video`, `image`, atau `audio`.
+    </ResponseField>
+    <ResponseField name="creditsDefault" type="number" required>
+      Harga dasar dalam kredit bila tidak ada override yang cocok. Bisa pecahan.
+    </ResponseField>
+    <ResponseField name="priceMatrix" type="object">
+      Override harga. Kunci yang mungkin: durasi (`"15"`), resolusi (`"720p"`), kombinasi (`"720p:15"`), atau kualitas:resolusi (`"low:2K"`).
+    </ResponseField>
+    <ResponseField name="capabilities" type="object">
+      Aturan validasi parameter untuk model ini.
+
+      <Expandable title="isi capabilities">
+        <ResponseField name="durations" type="array<string>">
+          Nilai valid untuk `parameters.duration`.
+        </ResponseField>
+        <ResponseField name="ratios" type="array<string>">
+          Nilai valid untuk `parameters.ratio`.
+        </ResponseField>
+        <ResponseField name="resolutions" type="array<string>">
+          Nilai valid untuk `parameters.resolution`.
+        </ResponseField>
+        <ResponseField name="maxReferenceImages" type="number">
+          Batas gambar referensi.
+        </ResponseField>
+        <ResponseField name="maxReferenceVideos" type="number">
+          Batas video referensi.
+        </ResponseField>
+        <ResponseField name="maxReferenceAudios" type="number">
+          Batas audio referensi.
+        </ResponseField>
+      </Expandable>
+
+      Sebagian model menambahkan `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, atau `supportsSeed`. Kunci yang tidak ada berarti parameter itu diabaikan.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+
+```json 200 theme={null}
+{
+  "success": true,
+  "models": {
+    "video": [
+      {
+        "id": "seedance-2-5-flash",
+        "label": "Seedance 2.5 Flash",
+        "category": "Video",
+        "mode": "video",
+        "creditsDefault": 3,
+        "priceMatrix": { "20": 3 },
+        "capabilities": {
+          "durations": ["20"],
+          "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+          "resolutions": ["720p"],
+          "maxReferenceImages": 9,
+          "maxReferenceVideos": 1,
+          "maxReferenceAudios": 1
+        }
+      }
+    ],
+    "image": [
+      {
+        "id": "nano-banana-2.1",
+        "label": "Nano Banana 2.1",
+        "category": "Image",
+        "mode": "image",
+        "creditsDefault": 1,
+        "priceMatrix": { "1K": 1, "2K": 1.5, "4K": 2 },
+        "capabilities": {
+          "durations": [],
+          "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+          "resolutions": ["1K", "2K", "4K"],
+          "maxReferenceImages": 10,
+          "maxReferenceVideos": 0,
+          "maxReferenceAudios": 0
+        }
+      }
+    ],
+    "audio": []
+  }
+}
+```
+
+```json 500 theme={null}
+{ "error": "Gagal memuat katalog model." }
+```
+
+</ResponseExample>
+
+## Cara memakainya di produk
+
+<AccordionGroup>
+  <Accordion title="Cache, jangan hardcode">
+    Ambil katalog sekali saat layananmu start, simpan 5–15 menit, dan segarkan saat menerima `409` (`model ... sedang tidak tersedia`). Daftar model berubah tanpa pengumuman.
+  </Accordion>
+  <Accordion title="Bangun UI dari capabilities">
+    Sembunyikan pilihan durasi yang tidak ada di `capabilities.durations` model terpilih. Validasi di sisi kamu sebelum mengirim menghemat kredit pengguna dan memanggang permintaan yang pasti ditolak server.
+  </Accordion>
+  <Accordion title="Hitung perkiraan biaya">
+    Tirukan urutan pencarian harga server: `quality:resolution` → `resolution:duration` → `duration` → `resolution` → `creditsDefault`. Lalu tambahkan 0 untuk referensi (belum ada surcharge saat ini).
+  </Accordion>
+  <Accordion title="Audio muncul di katalog, tapi belum bisa digenerate">
+    Keranjang `audio` diisi model musik. Pengirimannya melalui API key belum dibuka, jadi tampilkan sebagai "hanya di dashboard".
+  </Accordion>
+</AccordionGroup>

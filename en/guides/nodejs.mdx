@@ -1,0 +1,153 @@
+---
+title: "Node.js"
+description: "A dependency-free Vidgen client built on the fetch that ships with Node 18+."
+keywords: ["node.js", "vidgen javascript sdk", "fetch api client"]
+---
+
+The complete client below uses only the built-in `fetch` — no extra packages, no build step. Save it as `vidgen.js` and run it with Node 18 or newer.
+
+```js vidgen.js theme={null}
+const BASE = "https://vidgen.id/api/v1";
+
+export class VidgenError extends Error {
+  constructor(status, body) {
+    super(body?.error ?? `HTTP ${status}`);
+    this.status = status;
+    this.body = body ?? {};
+  }
+}
+
+async function call(path, { method = "GET", body, form } = {}) {
+  const headers = { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` };
+  if (body) headers["Content-Type"] = "application/json";
+
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    body: form ?? (body ? JSON.stringify(body) : undefined),
+  });
+
+  const payload = await res.json().catch(() => null);
+  if (!res.ok) throw new VidgenError(res.status, payload);
+  return payload;
+}
+
+export const vidgen = {
+  /** Create a job. Returns a job object with status `queued`. */
+  generate: (input) => call("/generate", { method: "POST", body: input }).then((r) => r.job),
+
+  /** Fetch the latest status; the server also settles `processing` jobs. */
+  job: (id) => call(`/jobs/${id}`).then((r) => r.job),
+
+  /** Upload a reference from a Buffer/File. Include `model` so the duration rules are right. */
+  upload: (file, model) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (model) form.append("model", model);
+    return call("/upload", { method: "POST", form }).then((r) => r.asset);
+  },
+
+  /** Balance, Unlimited status, and the quota left for today. */
+  credits: () => call("/user/credits"),
+
+  /** Active model catalog — public, still send a key for consistency. */
+  models: () => call("/models").then((r) => r.models),
+};
+
+/** Poll with backoff until the job reaches a final status. */
+export async function waitForJob(id, { interval = 5_000, cap = 30_000, timeout = 2 * 60 * 60_000 } = {}) {
+  const deadline = Date.now() + timeout;
+  let delay = interval;
+
+  for (;;) {
+    const job = await vidgen.job(id);
+    if (job.status === "succeeded" || job.status === "failed" || job.status === "cancelled") return job;
+    if (Date.now() + delay > deadline) return job;
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 1.6, cap);
+  }
+}
+```
+
+## Usage
+
+```js theme={null}
+import { vidgen, waitForJob } from "./vidgen.js";
+import { writeFile } from "node:fs/promises";
+
+const karakter = await vidgen.upload(await fetch("file:///./karakter.png").then((r) => r.blob()), "seedance-2-5-flash");
+
+const job = await vidgen.generate({
+  model: "seedance-2-5-flash",
+  prompt: "karakter ini melambaikan tangan ke kamera, latar studio lembut",
+  references: [karakter],
+  parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+  idempotencyKey: `klien-42-${crypto.randomUUID().slice(0, 8)}`,
+});
+
+const selesai = await waitForJob(job.id);
+
+if (selesai.status === "succeeded") {
+  const bytes = await fetch(selesai.result.url).then((r) => r.arrayBuffer());
+  await writeFile(`hasil-${selesai.id}.mp4`, bytes);
+} else {
+  console.error(selesai.errorMessage, "kredit kembali:", selesai.creditsCharged === 0);
+}
+```
+
+## Handling errors
+
+```js theme={null}
+try {
+  await vidgen.generate({ model: "seedance-2-5-flash", prompt: "..." });
+} catch (err) {
+  switch (err.status) {
+    case 401: /* wrong or revoked key — do not retry */ throw err;
+    case 402: /* balance exhausted: err.body.requiredCredits, err.body.currentCredits */ break;
+    case 409: /* inactive model — refetch the catalog */ break;
+    case 429: /* capacity: wait, then retry with the same idempotencyKey */ break;
+    case 503: /* maintenance: defer the job to the next window */ break;
+  }
+}
+```
+
+<Warning>
+  The diagnostic fields (`requiredCredits`, `maxConcurrent`, `dailyVideosUsed`) are on `err.body`, not in the message. Do not parse the error string for logic.
+</Warning>
+
+## Type Safety
+
+A short set of response types that is enough for most integrations:
+
+```ts types.ts theme={null}
+export type JobStatus = "queued" | "dispatching" | "processing" | "succeeded" | "failed" | "cancelled";
+
+export interface Job {
+  id: string;
+  status: JobStatus;
+  model: string;
+  category: "Video" | "Image" | "Audio";
+  prompt: string;
+  queuePosition?: number | null;
+  result: { url: string; duration?: number; width?: number; height?: number } | null;
+  errorMessage: string | null;
+  creditsCharged: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Asset {
+  id: string;
+  url: string;
+  file_url: string;
+  type: "image" | "video" | "audio";
+  filename: string;
+  duration?: number | null;
+  width?: number | null;
+  height?: number | null;
+}
+```
+
+<Note>
+  The client above calls Vidgen from the server. From a browser the request is blocked by CORS — keep the key and these calls on your backend.
+</Note>

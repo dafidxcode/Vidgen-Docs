@@ -1,0 +1,67 @@
+---
+title: "Create an account & API key"
+description: "Register a Vidgen account, top up credits, then create an API key to use from your own server."
+keywords: ["register vidgen", "create api key", "vg_ key"]
+---
+
+## 1. Sign in
+
+Vidgen uses **Sign in with Google**. Open [vidgen.id](https://vidgen.id) and click the sign-in button in the top right. There is no manual sign-up through the API.
+
+A new account is usable as soon as you create an API key. The starting credit amount is configured on the admin side, so check your balance with [`GET /api/v1/user/credits`](/en/api-reference/credits) before sending your first request.
+
+## 2. Top up credits
+
+Pay with QRIS at [vidgen.id/billing](https://vidgen.id/billing). There are two package types:
+
+- **Credit packages** — deducted per generation.
+- **Unlimited packages** — a daily quota with no credit deduction for eligible models; available for 1 day (Rp 10.000), 7 days, and 30 days.
+
+Once your payment is confirmed, the balance updates immediately. Check it with `GET /api/v1/user/credits` without having to reload the dashboard.
+
+## 3. Create an API key
+
+Open [vidgen.id/docs](https://vidgen.id/docs) and use the **API Keys** panel:
+
+<Steps>
+  <Step title="Click Create API Key">
+    Give it a name that identifies the environment, for example `production-server` or `laptop-rina`.
+  </Step>
+  <Step title="Copy the key">
+    Keys are formatted `vg_` + 32 hexadecimal characters, for example `vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912`.
+
+    <Danger>
+      The full value is shown **only once**. The server stores its SHA-256 hash, so we cannot display it again. If you lose it, create a new key and revoke the old one.
+    </Danger>
+  </Step>
+  <Step title="Store it as a secret">
+    Put it in an environment variable, not in your source code.
+
+```bash theme={null}
+# .env — do not commit this file
+VIDGEN_API_KEY=vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912
+```
+  </Step>
+</Steps>
+
+## 4. Revoke a key
+
+A key can be revoked at any time from the same panel. Revocation takes effect immediately: the next request is answered `401` with the error `API Key tidak valid atau telah dicabut.`
+
+Revoke a key right away if:
+
+- it appeared in a log, a screenshot, or a public repository;
+- the employee or environment that used it is no longer active;
+- you see unusual activity in `lastUsedAt`.
+
+## How keys work on the server
+
+| Property | Behavior |
+| --- | --- |
+| Storage | Only the SHA-256 hash is stored; the raw key never stays in the database. |
+| Account mapping | A key is always bound to one account; its jobs, credits, and library belong to that account. |
+| Limits | Keys have no limits of their own. Limits apply per account: concurrency, daily quota, credit balance. |
+| Activity | Every request made with a key updates `lastUsedAt`. |
+| Maintenance | While the site is temporarily closed, all keys are rejected with `503` as well. |
+
+Next: [Authentication](/en/authentication).

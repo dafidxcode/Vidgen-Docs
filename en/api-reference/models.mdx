@@ -1,0 +1,162 @@
+---
+title: "List models"
+description: "The catalog of active models with credit pricing, durations, ratios, resolutions, and per-model reference limits."
+keywords: ["GET /api/v1/models", "model catalog", "model credit pricing"]
+api: 'GET /api/v1/models'
+authMethod: 'none'
+---
+
+Returns the models that are currently usable, grouped into `video`, `image`, and `audio`. Disabled models are not returned.
+
+<Info>
+  This endpoint **does not require an API key** because it only holds the public catalog. The other pages in this tab still need a key.
+</Info>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl https://vidgen.id/api/v1/models
+```
+
+```js Node.js theme={null}
+const models = await (await fetch("https://vidgen.id/api/v1/models")).json();
+
+const video = models.models.video.find((m) => m.capabilities.durations.includes("30"));
+console.log(video?.id, video?.creditsDefault, video?.priceMatrix);
+```
+
+```python Python theme={null}
+models = requests.get("https://vidgen.id/api/v1/models").json()["models"]
+
+for m in models["video"]:
+    print(m["id"], m["capabilities"]["durations"], m["creditsDefault"])
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean" required>
+  `true` when the catalog loaded successfully.
+</ResponseField>
+
+<ResponseField name="models" type="object" required>
+  Three buckets: `video`, `image`, `audio`. Each one is an array of model objects.
+
+  <Expandable title="one model entry" defaultOpen>
+    <ResponseField name="id" type="string" required>
+      The value for the `model` field when generating.
+    </ResponseField>
+    <ResponseField name="label" type="string">
+      Display name. It can change; do not use it as a logic key.
+    </ResponseField>
+    <ResponseField name="category" type="string">
+      `"Video"`, `"Image"`, or `"Audio"`.
+    </ResponseField>
+    <ResponseField name="mode" type="string">
+      `video`, `image`, or `audio`.
+    </ResponseField>
+    <ResponseField name="creditsDefault" type="number" required>
+      Base price in credits when no override matches. Can be fractional.
+    </ResponseField>
+    <ResponseField name="priceMatrix" type="object">
+      Price overrides. Possible keys: duration (`"15"`), resolution (`"720p"`), combination (`"720p:15"`), or quality:resolution (`"low:2K"`).
+    </ResponseField>
+    <ResponseField name="capabilities" type="object">
+      Validation rules for this model's parameters.
+
+      <Expandable title="contents of capabilities">
+        <ResponseField name="durations" type="array<string>">
+          Valid values for `parameters.duration`.
+        </ResponseField>
+        <ResponseField name="ratios" type="array<string>">
+          Valid values for `parameters.ratio`.
+        </ResponseField>
+        <ResponseField name="resolutions" type="array<string>">
+          Valid values for `parameters.resolution`.
+        </ResponseField>
+        <ResponseField name="maxReferenceImages" type="number">
+          Reference image limit.
+        </ResponseField>
+        <ResponseField name="maxReferenceVideos" type="number">
+          Reference video limit.
+        </ResponseField>
+        <ResponseField name="maxReferenceAudios" type="number">
+          Reference audio limit.
+        </ResponseField>
+      </Expandable>
+
+      Some models add `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, or `supportsSeed`. A missing key means that parameter is ignored.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+
+```json 200 theme={null}
+{
+  "success": true,
+  "models": {
+    "video": [
+      {
+        "id": "seedance-2-5-flash",
+        "label": "Seedance 2.5 Flash",
+        "category": "Video",
+        "mode": "video",
+        "creditsDefault": 3,
+        "priceMatrix": { "20": 3 },
+        "capabilities": {
+          "durations": ["20"],
+          "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+          "resolutions": ["720p"],
+          "maxReferenceImages": 9,
+          "maxReferenceVideos": 1,
+          "maxReferenceAudios": 1
+        }
+      }
+    ],
+    "image": [
+      {
+        "id": "nano-banana-2.1",
+        "label": "Nano Banana 2.1",
+        "category": "Image",
+        "mode": "image",
+        "creditsDefault": 1,
+        "priceMatrix": { "1K": 1, "2K": 1.5, "4K": 2 },
+        "capabilities": {
+          "durations": [],
+          "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+          "resolutions": ["1K", "2K", "4K"],
+          "maxReferenceImages": 10,
+          "maxReferenceVideos": 0,
+          "maxReferenceAudios": 0
+        }
+      }
+    ],
+    "audio": []
+  }
+}
+```
+
+```json 500 theme={null}
+{ "error": "Gagal memuat katalog model." }
+```
+
+</ResponseExample>
+
+## How to use it in your product
+
+<AccordionGroup>
+  <Accordion title="Cache it, do not hardcode">
+    Fetch the catalog once when your service starts, keep it for 5–15 minutes, and refresh it when you receive a `409` (`model ... sedang tidak tersedia`). The model list changes without announcement.
+  </Accordion>
+  <Accordion title="Build your UI from capabilities">
+    Hide duration options that are not in `capabilities.durations` for the selected model. Validating on your side before sending saves user credits and avoids requests the server would certainly reject.
+  </Accordion>
+  <Accordion title="Estimate the cost">
+    Mirror the server's price lookup order: `quality:resolution` → `resolution:duration` → `duration` → `resolution` → `creditsDefault`. Then add 0 for references (there is no surcharge today).
+  </Accordion>
+  <Accordion title="Audio appears in the catalog but cannot be generated yet">
+    The `audio` bucket is filled with music models. Sending them through an API key is not open yet, so present them as "dashboard only".
+  </Accordion>
+</AccordionGroup>

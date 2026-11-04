@@ -1,0 +1,98 @@
+---
+title: "Handling results"
+description: "Download, store, and archive Vidgen API output before the links expire."
+keywords: ["result url", "media proxy", "download video", "24 hours", "store results"]
+---
+
+## Two shapes of result link
+
+`result.url` can arrive in two forms. Both are valid and both live on the same origin as the API:
+
+```text theme={null}
+https://vidgen.id/api/media/nama-berkas.mp4
+https://vidgen.id/api/media-proxy?token=acak-32-karakter
+```
+
+<Warning>
+  The second form uses a token that is valid for **24 hours**. After that the link is permanently dead, even if the job is still on record. Never store a URL as your archive of the result.
+</Warning>
+
+Treat both forms as a black box: download as-is, do not guess the extension from the path, and do not strip the query string.
+
+## Download and store it yourself
+
+```js theme={null}
+const res = await fetch(job.result.url);
+if (!res.ok) throw new Error(`gagal mengunduh: ${res.status}`);
+
+const key = `vidgen/${job.id}.mp4`;
+await storage.put(key, await res.arrayBuffer(), {
+  contentType: res.headers.get("content-type") ?? "video/mp4",
+  metadata: { jobId: job.id, model: job.model, prompt: job.prompt },
+});
+```
+
+```python theme={null}
+data = requests.get(job["result"]["url"], timeout=300)
+data.raise_for_status()
+
+with open(f"{job['id']}.mp4", "wb") as f:
+    f.write(data.content)
+```
+
+<Tip>
+  Store the file immediately once the status is `succeeded`. The most reliable way is to hand it to a worker: the polling job records the final status, then a download worker takes over.
+</Tip>
+
+## Metadata you can trust
+
+```json theme={null}
+"result": {
+  "url": "https://vidgen.id/api/media-proxy?token=...",
+  "duration": 5,
+  "width": 1280,
+  "height": 720
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `duration` | Seconds; can be `null` for image output. |
+| `width`, `height` | Actual output resolution. Not always exactly the `parameters.resolution` you requested. |
+
+`result` is only populated when `status === "succeeded"`. On any other status its value is `null` — check the status first, then read `result`.
+
+## When a job fails
+
+```json theme={null}
+{
+  "status": "failed",
+  "result": null,
+  "errorMessage": "Queue temporarily throttled due to repeated submission of high-risk content. Please wait 1-2 minutes, adjust your prompt, and try again.",
+  "creditsCharged": 0
+}
+```
+
+- `errorMessage` is already scrubbed and **in English** in the API response. Translate it into your own UI language, or display it as-is.
+- Credits already deducted are refunded automatically, so `creditsCharged` on a failed job ends up at `0`. Do not build your own refund system on your side.
+- Failure messages deliberately do not mention Vidgen's internal systems. When helping a user, ask for the `job.id`, not raw logs.
+
+<Accordion title="Common error message patterns">
+
+| Message | What it means | What you should do |
+| --- | --- | --- |
+| `...sensitive words, restricted figures...` | The prompt or a reference hit the safety filter. | Ask the user for neutral wording, then send it as a new job. |
+| `Reference video duration is not supported...` | The reference video is outside the model's range. | Use a 3-30 second video, or 10 seconds or less for image orientation. |
+| `Failed to align character with video motion...` | Face/motion detection did not match. | Replace the character photo: front-facing, well lit. |
+| `This model is temporarily unavailable on our side.` | A problem on the Vidgen side right now. | Try another model or wait 5-10 minutes. |
+| `The processing service is temporarily undergoing maintenance.` | Capacity is being repaired. | Defer the work; do not present it as a user failure. |
+
+</Accordion>
+
+## Result policy
+
+Rights over the output, privacy, content filtering, and commercial use are governed by Vidgen's terms of service — this documentation does not replace them. Some models carry their own restrictions listed in the dashboard. Watermarks follow the package active on your account, so check the pricing page if you promise clean files to end users.
+
+## Audit trail
+
+Every job stores `id`, `model`, `prompt`, `creditsCharged`, `createdAt`, and `updatedAt`. Keep `job.id` in your own database next to the business record (order, user, campaign) so you can reconcile billing and open a support ticket with a clear reference.

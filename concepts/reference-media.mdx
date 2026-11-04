@@ -1,0 +1,110 @@
+---
+title: "Media referensi"
+description: "Kirim gambar, video, atau audio sebagai referensi — lewat endpoint upload atau URL publik — dan pahami batas teknisnya."
+keywords: ["image to video", "video referensi", "upload api", "batas durasi referensi"]
+---
+
+Referensi masuk ke body `references` pada `POST /api/v1/generate`. Ada dua cara menyediakannya.
+
+## Cara 1 — unggah dulu (disarankan)
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/upload \
+  -H "Authorization: Bearer vg_KEY_KAMU" \
+  -F "file=@karakter.png" \
+  -F "model=seedance-2-5-flash"
+```
+
+```json theme={null}
+{
+  "success": true,
+  "asset": {
+    "id": "ref_api_1762261900_karakter.png",
+    "url": "/api/media/ref_api_1762261900_karakter.png",
+    "file_url": "/api/media/ref_api_1762261900_karakter.png",
+    "type": "image",
+    "filename": "ref_api_1762261900_karakter.png",
+    "width": 1024,
+    "height": 1024
+  }
+}
+```
+
+Lalu tempel objek `asset` utuh ke `references`:
+
+```json theme={null}
+{
+  "model": "seedance-2-5-flash",
+  "prompt": "karakter ini berlari menembus hutan pinus",
+  "references": [{ "id": "ref_api_1762261900_karakter.png", "type": "image", "url": "/api/media/..." }]
+}
+```
+
+Field `model` pada saat upload **tidak wajib tapi penting**: server memakai model target untuk memutuskan aturan durasi (misalnya kelonggaran untuk motion control) dan cara menyimpan berkas. Kalau kamu melewatinya, berkas diperlakukan dengan aturan umum.
+
+<Warning>
+  Nilai `filename` pada respons adalah nama di penyimpanan server, bukan nama berkas yang kamu kirim. Simpan `id` dan `url` apa adanya; jangan membangun path sendiri.
+</Warning>
+
+## Cara 2 — URL publik
+
+Kirim objek berisi `url` dan server yang mengunduhnya:
+
+```json theme={null}
+"references": [
+  { "url": "https://cdn.tokokamu.com/images/produk.png", "type": "image" }
+]
+```
+
+- Server memakai timeout 20 detik. URL lambat atau melindungi dirinya dari bot akan gagal dengan `400`.
+- `type` boleh dilewat; server mendeteksi dari isi berkas (bukan dari ekstensi). Menyebutkan `type` secara eksplisit membuat perilaku lebih mudah ditebak.
+- Berkas hasil unduhan disimpan di penyimpanan sementara Vidgen, jadi kamu tidak perlu mengunggahnya dua kali.
+
+<Info>
+  Untuk URL yang butuh header privat (signed URL, token), pastikan tautannya masih berlaku saat request dibuat. Server tidak mengirim header apa pun saat mengunduh.
+</Info>
+
+## Batas yang ditegakkan server
+
+| Aspek | Batas |
+| --- | --- |
+| Ukuran berkas | 100 MB |
+| Format terdeteksi | Gambar JPG/PNG/WebP, video MP4/WebM, audio MP3/WAV |
+| Jumlah berkas | 60 unggahan per jam per akun (`429` + header `Retry-After`) |
+| Gambar terlalu kecil | Sisi terpendek di bawah 100 px ditolak |
+| Gambar terlalu besar | Bila sisi terpendek < 300 px, sisi terpanjang > 1920 px, total > 4 juta px, atau > 3 MB → server mengecilkan otomatis ke sisi terpanjang 1920 px |
+| Durasi video/audio (umum) | 2–15 detik |
+| Video > 15 detik (umum) | Dipotong otomatis menjadi ±14,5 detik |
+| Durasi video referensi motion control | 3–30 detik; maksimal 10 detik bila orientasi mengikuti gambar |
+| Resolusi video referensi | Total minimal 300.000 px dan sisi terpendek minimal 360 px |
+| Motion control dengan durasi tak terbaca | Ditolak — ekspor sebagai MP4, bukan WebM |
+
+## Jumlah maksimum per model
+
+| Kategori model | Gambar | Video | Audio |
+| --- | --- | --- | --- |
+| Video | 9 | 1 | 1 |
+| Gambar | 10 | 0 | 0 |
+
+Angka ini adalah bawaan; tiap model bisa mendeklarasikan batas sendiri lewat `capabilities.maxReferenceImages`, `maxReferenceVideos`, dan `maxReferenceAudios` di katalog. Baca dari sana, bukan dari tabel ini.
+
+<Note>
+  Mengirim video atau audio ke model gambar selalu ditolak dengan `400`, berapa pun jumlahnya.
+</Note>
+
+## Praktik yang menghindarkan kegagalan
+
+<AccordionGroup>
+  <Accordion title="Simpan asset sekali, pakai berulang">
+    Aset yang sudah diunggah bisa dipakai di banyak job selama filenya ada. Selama kamu masih memakai referensi yang sama, jangan unggah ulang — batas 60 berkas/jam cepat habis kalau tiap job mengirim ulang gambar yang identik.
+  </Accordion>
+  <Accordion title="Sesuaikan rasio referensi dengan rasio keluaran">
+    Kalau gambar referensi 1:1 tetapi kamu meminta `ratio: "16:9"`, model akan mengisi ruang tambahan. Hasil paling stabil datang dari referensi yang rasionya sudah mirip dengan keluaran yang diminta.
+  </Accordion>
+  <Accordion title="Untuk face-lock, pakai wajah depan">
+    Foto dengan wajah menyamping, tertutup, atau pencahayaan minim adalah penyebab paling umum hasil yang tidak mirip atau job yang gagal di tahap penyelarasan.
+  </Accordion>
+  <Accordion title="Jangan kirim video dengan burn-in subtitle">
+    Teks yang terbakar di video referensi cenderung ikut direproduksi oleh model. Bersihkan dulu, baru unggah.
+  </Accordion>
+</AccordionGroup>

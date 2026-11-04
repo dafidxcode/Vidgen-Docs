@@ -1,0 +1,91 @@
+---
+title: "Motion control lewat API"
+description: "Pindahkan gerakan dari video referensi ke karakter kamu: unggah berkas, atur orientasi, dan pahami cara penagihannya."
+keywords: ["motion control", "transfer gerakan", "kling motion", "video referensi gerak"]
+---
+
+Motion control mengambil **gerakan** dari sebuah video dan menerapkannya ke **karakter** pada gambar kamu. Hasilnya adalah video baru: wajah dan gaya dari gambar, gerakan dari video.
+
+## Alur tiga berkas
+
+<Steps>
+  <Step title="Unggah video gerakan">
+    Sertakan id model target supaya server memakai aturan durasi yang benar dan tidak memotong videonya.
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/upload \
+  -H "Authorization: Bearer vg_KEY_KAMU" \
+  -F "file=@gerakan.mp4" \
+  -F "model=kling-mc-3-0-pro"
+```
+  </Step>
+  <Step title="Unggah gambar karakter">
+    Foto atau ilustrasi yang ingin dianimasikan. Wajah menghadap depan memberi hasil paling stabil.
+  </Step>
+  <Step title="Kirim job dengan dua referensi">
+    Urutan tidak menentukan peran — yang membedakan adalah field `type`.
+
+```json theme={null}
+{
+  "model": "kling-mc-3-0-pro",
+  "prompt": "",
+  "references": [
+    { "id": "ref_api_1762261900_gerakan.mp4", "type": "video", "url": "/api/media/..." },
+    { "id": "ref_api_1762261901_karakter.png", "type": "image", "url": "/api/media/..." }
+  ],
+  "parameters": { "orientation": "video" }
+}
+```
+  </Step>
+</Steps>
+
+## Aturan yang beda dari model video biasa
+
+| Aspek | Motion control |
+| --- | --- |
+| `prompt` | Boleh kosong. Kalau dikosongkan, server mengisi instruksi netral otomatis. |
+| `parameters.duration` | Diabaikan. Durasi keluaran = panjang video referensi, diukur ulang di server. |
+| Harga | Mengikuti durasi video referensi yang terukur, bukan angka yang kamu kirim. |
+| Rentang video referensi | 3–30 detik (default; beberapa model menyempitkan lewat katalog). |
+| `orientation: "image"` | Video referensi dipangkas jadi maksimal 10 detik. |
+| Panjang `prompt` | Maksimal 2.500 karakter. Lebih dari itu ditolak sebelum kredit terpotong. |
+| Format video | Ekspor **MP4**. WebM bisa membuat durasi tidak terbaca dan job ditolak. |
+
+`parameters.orientation` hanya berlaku di sini:
+
+- `"image"` — rasio keluaran mengikuti gambar karakter.
+- `"video"` — rasio keluaran mengikuti video gerakan.
+
+Nilai lain (atau kunci ini dikirim ke model non-motion) diabaikan tanpa error.
+
+<Warning>
+  Kalau server membalas `Durasi video referensi tidak bisa dibaca`, berkasnya bukan MP4 yang valid atau stream-nya tidak punya metadata panjang. Transcode ulang:
+
+```bash theme={null}
+ffmpeg -i gagal.webm -c:v libx264 -preset veryfast -crf 20 -movflags +faststart keluar.mp4
+```
+</Warning>
+
+## Kenapa durasi tidak bisa kamu tentukan sendiri
+
+Tagihan motion control dihitung dari panjang video gerakan yang benar-benar diproses. Kalau server percaya angka `duration` dari klien, video 30 detik bisa ditagih sebagai 3 detik. Karena itu durasi diukur ulang dari berkas tersimpan dan nilai kiriman kamu ditimpa.
+
+Artinya: kalau butuh keluaran 6 detik, potong video referensinya jadi 6 detik sebelum diunggah.
+
+## Check-list sebelum kirim
+
+<AccordionGroup>
+  <Accordion title="Video gerakan">
+    Satu berkas saja. Gerakan terlihat jelas, subjek tidak keluar frame, pencahayaan stabil, tidak ada teks yang dibakar ke gambar. Durasi 3–30 detik (10 detik jika `orientation: "image"`).
+  </Accordion>
+  <Accordion title="Gambar karakter">
+    Resolusi minimal 300 px di sisi terpendek, wajah menghadap depan, tidak tertutup objek, gaya konsisten dengan yang kamu inginkan di hasil akhir. Maksimal satu gambar karakter untuk hasil paling tajam.
+  </Accordion>
+  <Accordion title="Biaya">
+    Cek dulu: `GET /api/v1/user/credits` untuk saldo, lalu baca harga per detik model motion di katalog. Durasi video referensi menentukan tagihan, jadi video yang lebih panjang berarti kredit lebih besar.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Model motion control bisa dinonaktifkan sewaktu-waktu. Kalau kamu menerima `409`, jangan coba-coba ejaan lain — ambil ulang `GET /api/v1/models` dan pindahkan permintaan ke model yang tersedia.
+</Tip>

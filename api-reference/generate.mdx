@@ -1,0 +1,271 @@
+---
+title: "Buat job generate"
+description: "Kirim prompt dan referensi untuk membuat video atau gambar. Mengembalikan id job untuk di-polling."
+keywords: ["POST /api/v1/generate", "text to video", "image to video", "202 accepted"]
+api: 'POST /api/v1/generate'
+---
+
+Membuat satu job generate. Kredit dipotong pada endpoint ini, dan request dijawab **sebelum** hasilnya jadi.
+
+<Info>
+  Butuh daftar model yang bisa diisi di field `model`? Ambil dari [`GET /api/v1/models`](/api-reference/models). Nilai `parameters` yang valid juga bergantung pada model.
+</Info>
+
+### Authorizations
+
+<ParamField path="Authorization" type="string" required>
+  API key berformat `Bearer vg_...`. Bisa juga memakai header `x-api-key`.
+</ParamField>
+
+### Request body
+
+<ParamField body="model" type="string" required>
+  Id model dari katalog, misalnya `seedance-2-5-flash`. Ejaan dengan titik dan tanda hubung diperlakukan sama. Model yang ada tapi sedang dinonaktifkan dijawab `409`.
+</ParamField>
+
+<ParamField body="prompt" type="string">
+  Deskripsi yang ingin dibuat. **Wajib** kecuali untuk model motion control, yang boleh kosong karena server mengisi instruksi netral. Maksimal 2.500 karakter untuk model motion.
+
+  Prompt melewati penyaringan konten lebih dulu; kata sensitif, tokoh publik, atau indikasi pelanggaran dihapus sebelum diteruskan. Sebagian model yang secara terbuka dijual tanpa penyaringan dikenali dari id-nya (`spicy`, `nsfw`) dan tidak disaring.
+</ParamField>
+
+<ParamField body="parameters" type="object" default="{}">
+  Pengaturan keluaran. Hanya kunci yang dikenal yang diproses; kunci lain diabaikan tanpa error.
+
+  <Expandable title="sifat yang dikenali">
+    <ParamField body="duration" type="string">
+      Durasi dalam detik, misal `"5"` atau `"30"`. Akhiran `s` diterima dan dibuang. Divalidasi terhadap `capabilities.durations`. **Diabaikan pada model motion control.**
+    </ParamField>
+    <ParamField body="resolution" type="string">
+      Resolusi, misal `"720p"`, `"1080p"`, `"1K"`, `"2K"`, `"4K"`. Divalidasi terhadap `capabilities.resolutions`.
+    </ParamField>
+    <ParamField body="ratio" type="string">
+      Rasio aspek: `"16:9"`, `"9:16"`, `"1:1"`, `"4:3"`, `"3:4"`, atau `"auto"`. `aspect_ratio` diterima sebagai alias.
+    </ParamField>
+    <ParamField body="quality" type="string">
+      Untuk model gambar yang punya `capabilities.qualities` (`low`, `medium`, `high`, `max`). Diabaikan bila model tidak mendukung.
+    </ParamField>
+    <ParamField body="background" type="string">
+      Untuk model gambar yang punya `capabilities.backgrounds` (`auto`, `transparent`, `opaque`).
+    </ParamField>
+    <ParamField body="output_format" type="string">
+      Format keluaran; `format` diterima sebagai alias. Hanya dipakai jika model punya `capabilities.outputFormats`.
+    </ParamField>
+    <ParamField body="negative_prompt" type="string">
+      Hal yang tidak diinginkan. Hanya diteruskan jika `capabilities.supportsNegativePrompt`.
+    </ParamField>
+    <ParamField body="seed" type="string">
+      Biji acak untuk hasil yang bisa diulang. Hanya diteruskan jika `capabilities.supportsSeed`.
+    </ParamField>
+    <ParamField body="orientation" type="string">
+      Khusus motion control: `"image"` (rasio mengikuti gambar karakter) atau `"video"` (rasio mengikuti video gerakan). Nilai lain diabaikan.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="references" type="array<object>">
+  Bahan masukan: gambar karakter, produk, atau video gerakan. Tiap objek bisa berupa aset hasil [`POST /api/v1/upload`](/api-reference/upload) **atau** URL publik.
+
+  <Expandable title="objek referensi">
+    <ParamField body="id" type="string">
+      Id aset dari endpoint upload. Kalau ada, objek ini dipakai apa adanya (kirim juga `url`, `file_url`, dan `filename` seperti yang kamu terima).
+    </ParamField>
+    <ParamField body="url" type="string">
+      URL media publik (`http` atau `https`) yang akan diunduh server dengan timeout 20 detik. Kegagalan unduhan dijawab `400`.
+    </ParamField>
+    <ParamField body="type" type="string">
+      `"image"`, `"video"`, atau `"audio"`. Boleh dilewat — server mendeteksi dari isi berkas. Jumlah maksimum per jenis bergantung model (bawaan: 9 gambar / 1 video / 1 audio; model gambar 10 gambar dan tanpa video atau audio).
+    </ParamField>
+    <ParamField body="filename" type="string">
+      Nama berkas di penyimpanan server. Ikuti persis nilai dari respons upload.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="idempotencyKey" type="string">
+  Minimal 8 karakter. Key yang sama mengembalikan job yang sudah ada dengan `200` dan `idempotent: true`, tanpa potongan kredit kedua. Di bawah 8 karakter, nilai kamu diabaikan dan server membuat key sendiri. Lihat [Idempotensi](/concepts/idempotency).
+</ParamField>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl -X POST https://vidgen.id/api/v1/generate \
+  -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "seedance-2-5-flash",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+    "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" },
+    "idempotencyKey": "order-4711-a39f2c7b"
+  }'
+```
+
+```js Node.js theme={null}
+const res = await fetch("https://vidgen.id/api/v1/generate", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.VIDGEN_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "seedance-2-5-flash",
+    prompt: "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+    parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+    idempotencyKey: "order-4711-a39f2c7b",
+  }),
+});
+
+console.log(res.status, await res.json());
+```
+
+```python Python theme={null}
+res = requests.post(
+    "https://vidgen.id/api/v1/generate",
+    headers={"Authorization": f"Bearer {api_key}"},
+    json={
+        "model": "seedance-2-5-flash",
+        "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+        "parameters": {"duration": "5", "ratio": "16:9", "resolution": "720p"},
+        "idempotencyKey": "order-4711-a39f2c7b",
+    },
+)
+
+print(res.status_code, res.json())
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean">
+  `true` pada semua respons sukses.
+</ResponseField>
+
+<ResponseField name="job" type="object" required>
+  Objek job.
+
+  <Expandable title="sifat job" defaultOpen>
+    <ResponseField name="id" type="string" required>
+      Id untuk polling di `GET /api/v1/jobs/{id}`.
+    </ResponseField>
+    <ResponseField name="status" type="string" required>
+      `"queued"` untuk job baru. Nilai lain: `dispatching`, `processing`, `succeeded`, `failed`, `cancelled`.
+    </ResponseField>
+    <ResponseField name="model" type="string">
+      Id model yang dipakai.
+    </ResponseField>
+    <ResponseField name="category" type="string">
+      `"Video"`, `"Image"`, atau `"Audio"`.
+    </ResponseField>
+    <ResponseField name="prompt" type="string">
+      Prompt **setelah** penyaringan konten. Ini yang benar-benar diproses.
+    </ResponseField>
+    <ResponseField name="creditsCharged" type="number" required>
+      Kredit yang dipotong. `0` bila kuota Unlimited terpakai.
+    </ResponseField>
+    <ResponseField name="createdAt" type="string (ISO 8601)">
+      Waktu job dibuat, UTC.
+    </ResponseField>
+    <ResponseField name="result" type="object | null">
+      Hanya terisi pada respons idempoten untuk job yang sudah selesai; untuk job baru selalu `null`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="queue" type="object">
+  Informasi antrean saat request dibuat.
+
+  <Expandable title="isi queue">
+    <ResponseField name="position" type="number">
+      Posisi di antrean. `0` berarti sedang diproses atau posisinya tidak dilaporkan.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Mengikuti status job, umumnya `"queued"`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="idempotent" type="boolean">
+  Hanya muncul saat key yang sama sudah pernah dipakai dan job lama dikembalikan.
+</ResponseField>
+
+<ResponseExample>
+
+```json 202 — job baru theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "queued",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z"
+  },
+  "queue": { "position": 2, "status": "queued" }
+}
+```
+
+```json 200 — replay idempoten theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "succeeded",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+    "result": { "url": "https://vidgen.id/api/media-proxy?token=..." },
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z"
+  },
+  "queue": { "position": 0 },
+  "idempotent": true
+}
+```
+
+```json 402 — kredit kurang theme={null}
+{
+  "error": "Kredit akun tidak mencukupi. Pembuatan ini membutuhkan 10 kredit",
+  "requiredCredits": 10,
+  "currentCredits": 4
+}
+```
+
+```json 429 — proses bersamaan penuh theme={null}
+{
+  "error": "Maksimal 2 proses generate bersamaan. Tunggu salah satunya selesai sebelum memulai yang baru.",
+  "maxConcurrent": 2,
+  "activeJobs": 2
+}
+```
+
+```json 400 — parameter tidak valid theme={null}
+{
+  "error": "Parameter tidak valid: Durasi 60s tidak didukung Seedance 2.5 Flash. Pilihan: 20s.",
+  "fields": ["Durasi 60s tidak didukung Seedance 2.5 Flash. Pilihan: 20s."]
+}
+```
+
+</ResponseExample>
+
+## Yang perlu kamu tahu
+
+<AccordionGroup>
+  <Accordion title="Kenapa 202, bukan 200?">
+    Generate bersifat asinkron. `202` berarti permintaan diterima dan antrean sudah disiapkan; hasilnya diambil nanti lewat job id. Satu-satunya `200` di endpoint ini adalah replay idempoten.
+  </Accordion>
+  <Accordion title="Kapan kredit dipotong dan kapan kembali?">
+    Dipotong sebelum job disimpan. Kalau job gagal, batal tersimpan, atau antrean penuh, kredit dikembalikan otomatis dengan reason refund yang tercatat di riwayat akun. Kamu tidak perlu membuat mekanisme refund sendiri.
+  </Accordion>
+  <Accordion title="Apakah request bisa diulang dengan aman?">
+    Ya, asal memakai `idempotencyKey` yang sama dan panjangnya minimal 8 karakter. Tanpa itu, setiap retry adalah job baru dengan tagihan baru.
+  </Accordion>
+  <Accordion title="Field tambahan pada body diabaikan?">
+    Ya. Body yang mengirim `watermark: false` atau `n: 2` tidak error, tapi juga tidak berefek. Hanya `model`, `prompt`, `parameters`, `references`, `idempotencyKey` yang dibaca.
+  </Accordion>
+  <Accordion title="Batas yang membuat request ini ditolak">
+    Dua proses bersamaan (khusus akun Unlimited), 50 video sukses per hari, antrean server penuh, atau situs sedang pemeliharaan. Semuanya memakai `429` atau `503`.
+  </Accordion>
+</AccordionGroup>

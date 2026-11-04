@@ -1,0 +1,75 @@
+---
+title: "Ikhtisar referensi API"
+description: "Lima endpoint Vidgen API, bentuk error standar, dan hal-hal yang konsisten di seluruh endpoint."
+keywords: ["api reference", "endpoint vidgen", "format error"]
+---
+
+Vidgen API punya lima endpoint. Semuanya memakai origin yang sama, autentikasi yang sama, dan bentuk error yang sama.
+
+| Method | Path | Auth | Balas |
+| --- | --- | --- | --- |
+| `POST` | [`/api/v1/generate`](/api-reference/generate) | API key | `202` job baru, `200` replay idempoten |
+| `GET` | [`/api/v1/jobs/{id}`](/api-reference/get-job) | API key | `200` |
+| `POST` | [`/api/v1/upload`](/api-reference/upload) | API key | `200` objek aset |
+| `GET` | [`/api/v1/models`](/api-reference/models) | publik | `200` |
+| `GET` | [`/api/v1/user/credits`](/api-reference/credits) | API key | `200` |
+
+## Konvensi
+
+- **Base URL** `https://vidgen.id`, prefix path `/api/v1`. Lihat [Base URL](/api-base-url).
+- **Autentikasi** lewat `Authorization: Bearer vg_...` **atau** `x-api-key: vg_...`. Lihat [Autentikasi](/authentication).
+- **Content type** `application/json; charset=utf-8`, kecuali upload yang memakai `multipart/form-data`.
+- **Waktu** memakai ISO-8601 UTC (`2026-11-04T09:12:44.000Z`). Kuota harian dihitung dalam WIB.
+- **Body sukses** selalu memuat `"success": true` di samping datanya.
+- **Tanpa CORS**: panggil dari server, bukan dari browser.
+
+## Bentuk error
+
+Setiap kegagalan memakai body ini:
+
+```json theme={null}
+{ "error": "Pesan yang layak dibaca manusia." }
+```
+
+Yang membedakan adalah status HTTP. Beberapa error menambahkan field diagnostik:
+
+| Status | Makna | Field tambahan |
+| --- | --- | --- |
+| `400` | Permintaan tidak bisa dipahami atau ditolak validasi | `fields` (saat parameter bermasalah) |
+| `401` | Key tidak ada, salah format, atau dicabut | — |
+| `402` | Kredit tidak cukup | `requiredCredits`, `currentCredits` |
+| `403` | Job bukan milik akun ini | — |
+| `409` | Model ada tapi sedang tidak aktif | — |
+| `413` | Berkas melebihi 100 MB | — |
+| `429` | Batas konkurensi, kuota harian, antrean penuh, atau batas unggah | `maxConcurrent`, `activeJobs`, `dailyVideosUsed`, `resetsAt`; header `Retry-After` di upload |
+| `500` | Kegagalan di sisi Vidgen saat memuat data | — |
+| `503` | Pemeliharaan, layanan sesi/kredit tidak bisa diakses | — |
+
+<Info>
+  Vidgen tidak mengeluarkan kode error numerik sendiri. Jangan mem-parse string untuk logika — pakai status HTTP, lalu baca field diagnostik bila ada.
+</Info>
+
+## Pesan error tidak pernah berisi detail internal
+
+Jalur keluar ke pengguna sudah disaring: nama penyedia, URL internal, dan respons mentah dari sistem hulu tidak akan muncul di `error` maupun `errorMessage`. Yang kamu dapat adalah kalimat yang bisa langsung diteruskan ke pengguna akhir. Kalau ada yang janggal, laporkan `job.id` beserta statusnya.
+
+## Spec OpenAPI
+
+Terdapat spec OpenAPI 3.1 di repositori dokumentasi (`/openapi.json`) sebagai artefak untuk menghasilkan klien. Spec ini bukan sumber kebenaran bila bertentangan dengan halaman-halaman di tab ini; kontrak hidup ada di server.
+
+## Mulai dari mana
+
+<Columns cols={2}>
+  <Card title="Generate video atau gambar" icon="sparkles" href="/api-reference/generate">
+    Endpoint utama: prompt, model, parameter, referensi.
+  </Card>
+  <Card title="Ambil hasil" icon="clock" href="/api-reference/get-job">
+    Polling status dan unduh media.
+  </Card>
+  <Card title="Unggah referensi" icon="upload" href="/api-reference/upload">
+    Gambar, video, atau audio sebagai bahan.
+  </Card>
+  <Card title="Baca saldo" icon="coins" href="/api-reference/credits">
+    Kredit, masa Unlimited, dan sisa kuota hari ini.
+  </Card>
+</Columns>

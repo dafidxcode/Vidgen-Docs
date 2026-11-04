@@ -1,0 +1,108 @@
+---
+title: "Konkurensi & batas pemakaian"
+description: "Batas proses bersamaan, kuota video harian, kedalaman antrean, umur job, dan cara menulis ulang (retry) yang sopan."
+keywords: ["rate limit", "429", "konkurensi", "kuota harian", "queue"]
+---
+
+Vidgen API memakai batas untuk menjaga antrean tetap adil. Batasnya menempel di **akun**, bukan di API key — membuat tiga key tidak melipatgandakan jatahmu.
+
+## Ringkasan angka
+
+| Batas | Nilai | Berlaku untuk | Status saat kena |
+| --- | --- | --- | --- |
+| Proses bersamaan | 2 | akun dengan kuota Unlimited aktif | `429` |
+| Video sukses per hari | 50, reset 00:00 WIB | semua akun, dihitung dari dashboard + API | `429` |
+| Unggahan media | 60 berkas/jam | semua akun | `429` + `Retry-After` |
+| Kedalaman antrean | 100 job | kapasitas server bersama | `429` |
+| Umur job | 2 jam | semua job | `failed` + kredit dikembalikan |
+| Masa berlaku tautan hasil | 24 jam | `result.url` | tautan mati |
+
+## Batas proses bersamaan
+
+Hanya ditegakkan untuk pemakaian kuota Unlimited. Kalau akunmu membayar per kredit, kamu boleh memiliki lebih dari dua job aktif — dengan konsekuensi antrean yang lebih panjang.
+
+```json theme={null}
+{
+  "error": "Maksimal 2 proses generate bersamaan. Tunggu salah satunya selesai sebelum memulai yang baru.",
+  "maxConcurrent": 2,
+  "activeJobs": 2
+}
+```
+
+Pola yang benar: jangan kirim sambil berharap. Cek dulu, atau tangani `429` sebagai sinyal penjadwalan ulang.
+
+```js theme={null}
+const { limits } = await (await fetch(`${BASE}/user/credits`, { headers })).json();
+
+if (limits.currentActiveJobs >= limits.maxConcurrentJobs) {
+  await sleep(15_000);
+  return queueLater();
+}
+```
+
+## Kuota video harian
+
+Terhitung dari video yang **berhasil**. Job gagal tidak memakan kuota.
+
+```json theme={null}
+{
+  "error": "Batas harian tercapai, kuota harian direset pukul 00:00 WIB.",
+  "dailyLimitReached": true,
+  "dailyVideosUsed": 50,
+  "resetsAt": "00:00 WIB"
+}
+```
+
+Baca `dailyVideosRemaining` dari `GET /api/v1/user/credits` sebelum mengirim batch agar tidak ada permintaan yang mati di tengah jalan. Reset memakai waktu WIB, bukan UTC.
+
+## Antrean dan umur job
+
+Setiap job melewati `queued` → `dispatching` → `processing` → hasil akhir. Kalau worker mati atau penyedia hulu macet, job tidak dibiarkan menggantung:
+
+- Setelah **2 jam**, job dianggap basi, ditandai `failed`, dan kreditnya dikembalikan.
+- Job yang perlu diambil ulang masuk masa toleransi sebelum dikirim lagi.
+
+Karena itu, **jangan polling lebih dari 2 jam** untuk satu job. Setelah itu cukup anggap selesai (gagal) dan kirim permintaan baru.
+
+<Steps>
+  <Step title="Mulai dari 5 detik">
+    Ambil status pertama 5 detik setelah `202`.
+  </Step>
+  <Step title="Naik bertahap">
+    Tambah jeda secara eksponensial sampai plafon 30 detik (`5, 8, 12, 20, 30, 30, ...`). Ini cukup karena video biasanya matang dalam hitungan menit.
+  </Step>
+  <Step title="Berhenti saat akhir">
+    Begitu `succeeded` atau `failed`, hentikan polling dan simpan hasilnya.
+  </Step>
+  <Step title="Batasi umur total">
+    Hentikan polling sendiri di 2 jam. Server akan menutup job pada titik yang sama.
+  </Step>
+</Steps>
+
+```js wait_for_job.js theme={null}
+async function waitForJob(id, { start = 5_000, cap = 30_000, timeout = 2 * 60 * 60_000 } = {}) {
+  const deadline = Date.now() + timeout;
+  let delay = start;
+
+  while (Date.now() < deadline) {
+    const job = (await (await fetch(`${BASE}/jobs/${id}`, { headers })).json()).job;
+    if (job.status === "succeeded" || job.status === "failed") return job;
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 1.6, cap);
+  }
+
+  throw new Error("job masih berjalan setelah 2 jam");
+}
+```
+
+## Backoff saat kena `429`
+
+`429` di Vidgen berarti "kapasitas", bukan "kamu diblokir". Tunggu lalu ulangi:
+
+- Kalau ada header `Retry-After` (hanya di `POST /api/v1/upload`), hormati nilainya dalam detik.
+- Untuk `429` tanpa header, tunggu 30 detik, lalu naikkan dua kali lipat tiap percobaan, maksimal 5 percobaan.
+- Setelah percobaan terakhir tetap gagal, tunda job ke periode berikutnya dan beri tahu pengguna akhirnya.
+
+<Warning>
+  Retry `POST /api/v1/generate` tanpa `idempotencyKey` bisa membuat dua job dan dua tagihan. Baca dulu [Idempotensi](/concepts/idempotency).
+</Warning>

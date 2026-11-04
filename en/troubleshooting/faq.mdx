@@ -1,0 +1,67 @@
+---
+title: "Frequently asked questions"
+description: "Quick answers to the most common Vidgen integration problems."
+keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
+---
+
+<AccordionGroup>
+  <Accordion title="Is there a webhook so I do not have to poll?" icon="rss">
+    Not yet. The official model is polling `GET /api/v1/jobs/{id}`. If you need notifications, run a worker whose job is to poll and emit events into your own system. A webhook format can be added later without breaking existing clients.
+  </Accordion>
+
+  <Accordion title="Why does my browser request fail even though the key is correct?" icon="globe">
+    The Vidgen API does not send CORS headers, so browsers block reading the response from another domain. Put the API calls on your backend. This is deliberate: an API key must not sit in code that reaches end users.
+  </Accordion>
+
+  <Accordion title="How many API keys can one account have?" icon="key-round">
+    No limit is published. What matters: usage limits attach to the account, not to the key. Three keys do not mean three concurrency allowances.
+  </Accordion>
+
+  <Accordion title="How do I find a model's price before deducting a user's balance?" icon="coins">
+    Fetch `GET /api/v1/models`, then mirror the server's price lookup order: `quality:resolution` → `resolution:duration` → `duration` → `resolution` → `creditsDefault`. Prices can change on the admin side, so do not copy the numbers into your code.
+  </Accordion>
+
+  <Accordion title="Will my results disappear if I keep the URL?" icon="unlink">
+    Possibly. Links shaped like `/api/media-proxy?token=...` are valid for 24 hours. Download the file as soon as the status is `succeeded` and store it in your own storage.
+  </Accordion>
+
+  <Accordion title="Credits were deducted twice for one request" icon="rotate-ccw">
+    Almost always the cause is retrying without an `idempotencyKey`. Read [Idempotency](/en/concepts/idempotency): the key must be at least 8 characters long and reused on every attempt.
+  </Accordion>
+
+  <Accordion title="My job is `failed` — did I still pay?" icon="shield-check">
+    No. Credits are refunded automatically when a job fails, when the cancellation fails to save, or when the queue is full. On a failed job, `creditsCharged` ends up at `0`. What you do pay for is output that was actually produced, even if it does not match your artistic expectations.
+  </Accordion>
+
+  <Accordion title="Why did my prompt change in the response?" icon="eraser">
+    Vidgen filters sensitive words, public figure names, and indications of abuse before the request is forwarded. The `prompt` field in the response is the already-filtered content. If what remains damages your creative intent, rewrite it in neutral language.
+  </Accordion>
+
+  <Accordion title="Can it be used for adult content?" icon="circle-alert">
+    Some models are sold without filtering and are recognizable by their name. Using the API does not change the rules: the key holder is responsible for the material submitted, and Vidgen's terms of service apply on every channel. Read the terms in the dashboard before building a product on top of those models.
+  </Accordion>
+
+  <Accordion title="Why does audio generation not work through the API?" icon="music">
+    Music models do appear in the catalog, but that path is not open to API keys yet. Calling it today ends in `failed` with credits refunded. Audio generation is still dashboard-only.
+  </Accordion>
+
+  <Accordion title="How long does a video take?" icon="timer">
+    Usually 1-5 minutes for short clips, but it depends heavily on the queue. What is guaranteed is not the time but the upper bound: 2 hours, after which the job is marked `failed` and the credits come back.
+  </Accordion>
+
+  <Accordion title="Can I raise the concurrency limit?" icon="trending-up">
+    The limit of 2 concurrent processes only hangs on Unlimited quota usage. If you pay per credit, you are not subject to it — the consequence is a longer queue. For special needs (a studio with many artists), contact support through the dashboard.
+  </Accordion>
+
+  <Accordion title="Is there an official SDK?" icon="package">
+    Not yet. What exists are the minimal clients in the [Node.js](/en/guides/nodejs) and [Python](/en/guides/python) guides, plus the OpenAPI spec so you can generate your own client. Everything uses plain HTTP, so your integration does not depend on third-party packages.
+  </Accordion>
+
+  <Accordion title="Which endpoints are safe to use in production?" icon="rocket">
+    All five endpoints in the [API Reference](/en/api-reference/overview) tab are stable at `v1`. Breaking changes will be announced as a new version, and `v1` keeps being served.
+  </Accordion>
+
+  <Accordion title="Who do I report to if something looks wrong?" icon="life-buoy">
+    Through support in the Vidgen dashboard. Include: `job.id`, the endpoint, the HTTP status, the `error` exactly as you received it, the origin you used, and the time of the event. Without internal system names — they never appear in a response.
+  </Accordion>
+</AccordionGroup>

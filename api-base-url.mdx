@@ -1,0 +1,73 @@
+---
+title: "Base URL"
+description: "Origin, prefix versi, dan daftar path Vidgen API."
+keywords: ["base url", "endpoint vidgen", "https://vidgen.id/api/v1"]
+---
+
+Semua endpoint publik berada di satu origin dengan prefix versi:
+
+```text theme={null}
+https://vidgen.id/api/v1
+```
+
+Jangan menambahkan garis miring di akhirnya. `POST https://vidgen.id/api/v1/generate/` bisa dijawab `404` oleh router.
+
+## Daftar path
+
+| Method | Path | Auth | Deskripsi |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/generate` | API key | Buat job generate. Balas `202` dengan `job.id`. |
+| `GET` | `/api/v1/jobs/{id}` | API key | Ambil status dan hasil job. |
+| `POST` | `/api/v1/upload` | API key | Unggah berkas referensi (`multipart/form-data`). |
+| `GET` | `/api/v1/models` | publik | Katalog model aktif + harga kredit. |
+| `GET` | `/api/v1/user/credits` | API key | Saldo, status Unlimited, dan batas pemakaian. |
+
+Hasil generate disajikan lewat dua path non-versi yang ikut satu origin:
+
+| Path | Keterangan |
+| --- | --- |
+| `/api/media/{filename}` | Berkas yang diunggah atau dihasilkan di server Vidgen. |
+| `/api/media-proxy?token=...` | Tautan sementara (24 jam) untuk media yang tidak boleh dibuka publik langsung. |
+
+Keduanya sudah dikemas penuh di field `result.url`, jadi perlakukan nilai itu sebagai bola hitam: unduh, simpan, jangan parse.
+
+## Dipanggil dari mana?
+
+<Warning>
+  Vidgen API **tidak mengirim header CORS**. Panggilan dari browser di domain lain akan diblokir, walaupun key-nya benar. Jalankan request dari backend, worker, atau Edge Function kamu, lalu teruskan hasilnya ke frontend.
+</Warning>
+
+<CodeGroup>
+
+```text Bisa dipakai theme={null}
+server Node/Python/PHP/Go
+cron / worker
+Postman, Insomnia, curl
+aplikasi mobile yang memanggil backend sendiri
+```
+
+```text Tidak bisa theme={null}
+fetch() langsung dari React/Vue di domain lain
+Google Sheets / Zapier web hook tanpa proxy
+script HTML yang dibuka dari file://
+```
+
+</CodeGroup>
+
+## Versi
+
+`v1` adalah ruang nama yang stabil. Perubahan yang merusak kontrak (field dihapus, status berubah arti) akan diumumkan lebih dulu dan dipublikasikan sebagai `v2`; selama itu `v1` tetap dilayani.
+
+Perubahan yang tidak merusak kontrak — model baru di katalog, harga kredit baru, tambahan field opsional pada respons — bisa muncul kapan saja. Desain klien kamu seperti ini:
+
+- Abaikan field yang tidak kamu kenali.
+- Baca katalog model dari server, jangan hardcode.
+- Perlakukan `parameters` sebagai enum terbuka: validasi nilainya terhadap `GET /api/v1/models` sebelum mengirim.
+
+## Host cadangan
+
+Sebagian lingkungan produksi Vidgen berjalan di domain alternatif (misalnya `vidgen.my`). Kalau `vidgen.id` tidak bisa di-resolve dari servermu, cukup ganti origin-nya; seluruh path di atas tetap sama.
+
+Kalau kamu menghubungi dukungan, sebutkan origin yang kamu pakai — bukan nama layanan di belakangnya. Vidgen sengaja tidak pernah menampakkan identitas penyedia hulu di respons publik, dan pesan error yang kamu lihat sudah dibersihkan.
+
+Lanjut ke [Autentikasi](/authentication) atau langsung [Quickstart](/quickstart).

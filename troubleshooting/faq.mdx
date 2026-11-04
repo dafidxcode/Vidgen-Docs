@@ -1,0 +1,67 @@
+---
+title: "Pertanyaan umum"
+description: "Jawaban cepat untuk masalah integrasi Vidgen yang paling sering muncul."
+keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
+---
+
+<AccordionGroup>
+  <Accordion title="Ada webhook supaya tidak perlu polling?" icon="rss">
+    Belum. Model resminya adalah polling `GET /api/v1/jobs/{id}`. Kalau kamu butuh notifikasi, jalankan worker yang bertugas polling dan lempar peristiwa ke sistemmu sendiri. Format webhook bisa ditambahkan di masa depan tanpa merusak klien yang sudah ada.
+  </Accordion>
+
+  <Accordion title="Kenapa request dari browser saya gagal, padahal key benar?" icon="globe">
+    Vidgen API tidak mengirim header CORS, jadi browser memblokir pembacaan responsnya dari domain lain. Taruh pemanggilan API di backend kamu. Ini disengaja: API key tidak boleh berada di kode yang sampai ke pengguna akhir.
+  </Accordion>
+
+  <Accordion title="Satu akun boleh punya berapa API key?" icon="key-round">
+    Tidak ada batas yang diumumkan. Yang penting: batas pemakaian menempel di akun, bukan di key. Tiga key tidak berarti tiga jatah konkurensi.
+  </Accordion>
+
+  <Accordion title="Bagaimana cara tahu harga sebuah model sebelum memotong saldo pengguna?" icon="coins">
+    Ambil `GET /api/v1/models`, lalu tirukan urutan pencarian harga: `quality:resolution` → `resolution:duration` → `duration` → `resolution` → `creditsDefault`. Harga bisa berubah dari sisi admin, jadi jangan menyalin angkanya ke kode.
+  </Accordion>
+
+  <Accordion title="Hasilnya hilang kalau saya simpan URL-nya?" icon="unlink">
+    Bisa iya. Tautan berbentuk `/api/media-proxy?token=...` berlaku 24 jam. Unduh filenya begitu status `succeeded` dan simpan di storage kamu sendiri.
+  </Accordion>
+
+  <Accordion title="Kredit terpotong dua kali untuk satu permintaan" icon="rotate-ccw">
+    Hampir selalu penyebabnya retry tanpa `idempotencyKey`. Baca [Idempotensi](/concepts/idempotency): key harus panjangnya minimal 8 karakter dan dipakai lagi pada setiap percobaan.
+  </Accordion>
+
+  <Accordion title="Job saya `failed` — apakah saya bayar?" icon="shield-check">
+    Tidak. Kredit dikembalikan otomatis saat job gagal, batal tersimpan, atau antrean penuh. Pada job gagal, `creditsCharged` akhirnya bernilai `0`. Yang tetap berbayar adalah hasil yang memang jadi, walaupun tidak sesuai harapanmu secara artistik.
+  </Accordion>
+
+  <Accordion title="Kenapa prompt saya berubah di respons?" icon="eraser">
+    Vidgen menyaring kata sensitif, nama tokoh publik, dan indikasi pelanggaran sebelum permintaan diteruskan. Field `prompt` pada respons adalah isi yang sudah disaring. Kalau isinya sampai merusak maksud kreatifmu, tulis ulang dengan bahasa netral.
+  </Accordion>
+
+  <Accordion title="Boleh dipakai untuk konten dewasa?" icon="circle-alert">
+    Sebagian model dijual tanpa penyaringan dan bisa dikenali dari namanya. Aturannya tidak berubah karena kamu memakai API: tanggung jawab atas materi yang dikirim ada di pemegang key, dan ketentuan layanan Vidgen tetap berlaku di semua kanal. Baca ketentuan layanan di dashboard sebelum membangun produk di atas model-model itu.
+  </Accordion>
+
+  <Accordion title="Kenapa generate audio tidak jalan lewat API?" icon="music">
+    Model musik memang tampil di katalog, tapi jalurnya belum dibuka untuk API key. Pemanggilan hari ini akan berakhir `failed` dengan kredit dikembalikan. Generate audio masih lewat dashboard.
+  </Accordion>
+
+  <Accordion title="Berapa lama video selesai?" icon="timer">
+    Umumnya 1-5 menit untuk klip pendek, tetapi sangat bergantung pada antrean. Yang dijamin bukan waktunya, melainkan batas atasnya: 2 jam, setelah itu job ditandai `failed` dan kredit kembali.
+  </Accordion>
+
+  <Accordion title="Bisa naikkan batas konkurensi?" icon="trending-up">
+    Batas 2 proses bersamaan hanya menggantung pada pemakaian kuota Unlimited. Kalau kamu membayar per kredit, kamu tidak kena batas itu — konsekuensinya antrean lebih panjang. Untuk kebutuhan khusus (studio dengan banyak seniman), hubungi dukungan lewat dashboard.
+  </Accordion>
+
+  <Accordion title="Ada SDK resmi?" icon="package">
+    Belum. Yang tersedia adalah klien minimal di panduan [Node.js](/guides/nodejs) dan [Python](/guides/python), plus spec OpenAPI untuk menghasilkan klien sendiri. Semuanya memakai HTTP biasa, jadi integrasi tidak bergantung pada paket pihak ketiga.
+  </Accordion>
+
+  <Accordion title="Endpoint mana yang aman dipakai di production?" icon="rocket">
+    Kelima endpoint di tab [Referensi API](/api-reference/overview) sudah stabil di `v1`. Perubahan yang merusak kontrak akan diumumkan sebagai versi baru, dan `v1` tetap dilayani.
+  </Accordion>
+
+  <Accordion title="Ke siapa saya melapor kalau ada yang aneh?" icon="life-buoy">
+    Lewat dukungan di dashboard Vidgen. Sertakan: `job.id`, endpoint, status HTTP, `error` persis seperti yang kamu terima, origin yang kamu pakai, dan waktu kejadian. Tanpa nama sistem internal — memang tidak pernah muncul di respons.
+  </Accordion>
+</AccordionGroup>

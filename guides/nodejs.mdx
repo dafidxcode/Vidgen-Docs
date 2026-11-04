@@ -1,0 +1,153 @@
+---
+title: "Node.js"
+description: "Klien Vidgen tanpa dependensi menggunakan fetch bawaan Node 18+."
+keywords: ["node.js", "vidgen sdk javascript", "fetch api client"]
+---
+
+Klien lengkap di bawah hanya memakai `fetch` bawaan — tidak ada paket tambahan, tidak ada build step. Simpan sebagai `vidgen.js` dan jalankan dengan Node 18 atau lebih baru.
+
+```js vidgen.js theme={null}
+const BASE = "https://vidgen.id/api/v1";
+
+export class VidgenError extends Error {
+  constructor(status, body) {
+    super(body?.error ?? `HTTP ${status}`);
+    this.status = status;
+    this.body = body ?? {};
+  }
+}
+
+async function call(path, { method = "GET", body, form } = {}) {
+  const headers = { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` };
+  if (body) headers["Content-Type"] = "application/json";
+
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    body: form ?? (body ? JSON.stringify(body) : undefined),
+  });
+
+  const payload = await res.json().catch(() => null);
+  if (!res.ok) throw new VidgenError(res.status, payload);
+  return payload;
+}
+
+export const vidgen = {
+  /** Buat job. Balas objek job berstatus `queued`. */
+  generate: (input) => call("/generate", { method: "POST", body: input }).then((r) => r.job),
+
+  /** Ambil status terbaru; job `processing` ikut di-settle oleh server. */
+  job: (id) => call(`/jobs/${id}`).then((r) => r.job),
+
+  /** Unggah referensi dari Buffer/File. Sertakan `model` agar aturan durasinya tepat. */
+  upload: (file, model) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (model) form.append("model", model);
+    return call("/upload", { method: "POST", form }).then((r) => r.asset);
+  },
+
+  /** Saldo, status Unlimited, dan sisa kuota hari ini. */
+  credits: () => call("/user/credits"),
+
+  /** Katalog model aktif — publik, tetap kirim key agar seragam. */
+  models: () => call("/models").then((r) => r.models),
+};
+
+/** Polling dengan backoff sampai job mencapai status akhir. */
+export async function waitForJob(id, { interval = 5_000, cap = 30_000, timeout = 2 * 60 * 60_000 } = {}) {
+  const deadline = Date.now() + timeout;
+  let delay = interval;
+
+  for (;;) {
+    const job = await vidgen.job(id);
+    if (job.status === "succeeded" || job.status === "failed" || job.status === "cancelled") return job;
+    if (Date.now() + delay > deadline) return job;
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 1.6, cap);
+  }
+}
+```
+
+## Pemakaian
+
+```js theme={null}
+import { vidgen, waitForJob } from "./vidgen.js";
+import { writeFile } from "node:fs/promises";
+
+const karakter = await vidgen.upload(await fetch("file:///./karakter.png").then((r) => r.blob()), "seedance-2-5-flash");
+
+const job = await vidgen.generate({
+  model: "seedance-2-5-flash",
+  prompt: "karakter ini melambaikan tangan ke kamera, latar studio lembut",
+  references: [karakter],
+  parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+  idempotencyKey: `klien-42-${crypto.randomUUID().slice(0, 8)}`,
+});
+
+const selesai = await waitForJob(job.id);
+
+if (selesai.status === "succeeded") {
+  const bytes = await fetch(selesai.result.url).then((r) => r.arrayBuffer());
+  await writeFile(`hasil-${selesai.id}.mp4`, bytes);
+} else {
+  console.error(selesai.errorMessage, "kredit kembali:", selesai.creditsCharged === 0);
+}
+```
+
+## Menangani error
+
+```js theme={null}
+try {
+  await vidgen.generate({ model: "seedance-2-5-flash", prompt: "..." });
+} catch (err) {
+  switch (err.status) {
+    case 401: /* key salah atau dicabut — jangan diulang */ throw err;
+    case 402: /* saldo habis: err.body.requiredCredits, err.body.currentCredits */ break;
+    case 409: /* model nonaktif — ambil ulang katalog */ break;
+    case 429: /* kapasitas: tunggu lalu ulangi dengan idempotencyKey yang sama */ break;
+    case 503: /* pemeliharaan: tunda job ke periode berikutnya */ break;
+  }
+}
+```
+
+<Warning>
+  Field diagnostik (`requiredCredits`, `maxConcurrent`, `dailyVideosUsed`) ada di `err.body`, bukan di pesan. Jangan parsing string error untuk logika.
+</Warning>
+
+## Type Safety
+
+Tipe respons pendek yang cukup untuk sebagian besar integrasi:
+
+```ts types.ts theme={null}
+export type JobStatus = "queued" | "dispatching" | "processing" | "succeeded" | "failed" | "cancelled";
+
+export interface Job {
+  id: string;
+  status: JobStatus;
+  model: string;
+  category: "Video" | "Image" | "Audio";
+  prompt: string;
+  queuePosition?: number | null;
+  result: { url: string; duration?: number; width?: number; height?: number } | null;
+  errorMessage: string | null;
+  creditsCharged: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Asset {
+  id: string;
+  url: string;
+  file_url: string;
+  type: "image" | "video" | "audio";
+  filename: string;
+  duration?: number | null;
+  width?: number | null;
+  height?: number | null;
+}
+```
+
+<Note>
+  Klien di atas memanggil Vidgen dari server. Dari browser, request akan diblokir CORS — taruh key dan pemanggilan ini di backend kamu.
+</Note>

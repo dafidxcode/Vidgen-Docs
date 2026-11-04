@@ -1,0 +1,108 @@
+---
+title: "Concurrency & usage limits"
+description: "Concurrent process limits, the daily video quota, queue depth, job lifetime, and how to write polite retries."
+keywords: ["rate limit", "429", "concurrency", "daily quota", "queue"]
+---
+
+The Vidgen API uses limits to keep the queue fair. Limits attach to the **account**, not to the API key — creating three keys does not triple your allowance.
+
+## Numbers at a glance
+
+| Limit | Value | Applies to | Status when hit |
+| --- | --- | --- | --- |
+| Concurrent processes | 2 | accounts with an active Unlimited quota | `429` |
+| Successful videos per day | 50, reset 00:00 WIB | all accounts, counted from dashboard + API | `429` |
+| Media uploads | 60 files/hour | all accounts | `429` + `Retry-After` |
+| Queue depth | 100 jobs | shared server capacity | `429` |
+| Job lifetime | 2 hours | every job | `failed` + credits refunded |
+| Result link lifetime | 24 hours | `result.url` | link goes dead |
+
+## Concurrent process limit
+
+This is only enforced for Unlimited quota usage. If your account pays per credit, you may have more than two active jobs — with the consequence of a longer queue.
+
+```json theme={null}
+{
+  "error": "Maksimal 2 proses generate bersamaan. Tunggu salah satunya selesai sebelum memulai yang baru.",
+  "maxConcurrent": 2,
+  "activeJobs": 2
+}
+```
+
+The correct pattern: do not fire requests and hope. Check first, or handle `429` as a rescheduling signal.
+
+```js theme={null}
+const { limits } = await (await fetch(`${BASE}/user/credits`, { headers })).json();
+
+if (limits.currentActiveJobs >= limits.maxConcurrentJobs) {
+  await sleep(15_000);
+  return queueLater();
+}
+```
+
+## Daily video quota
+
+It counts videos that **succeeded**. Failed jobs do not consume quota.
+
+```json theme={null}
+{
+  "error": "Batas harian tercapai, kuota harian direset pukul 00:00 WIB.",
+  "dailyLimitReached": true,
+  "dailyVideosUsed": 50,
+  "resetsAt": "00:00 WIB"
+}
+```
+
+Read `dailyVideosRemaining` from `GET /api/v1/user/credits` before sending a batch so that no request dies partway through. The reset uses WIB time, not UTC.
+
+## Queue and job lifetime
+
+Every job goes through `queued` → `dispatching` → `processing` → a final status. If a worker dies or the upstream service stalls, the job is not left hanging:
+
+- After **2 hours**, a job is considered stale, marked `failed`, and its credits are refunded.
+- A job that needs to be picked up again goes through a tolerance window before being dispatched again.
+
+For that reason, **do not poll one job for more than 2 hours**. After that, treat it as finished (failed) and send a new request.
+
+<Steps>
+  <Step title="Start at 5 seconds">
+    Fetch the first status 5 seconds after the `202`.
+  </Step>
+  <Step title="Increase gradually">
+    Grow the interval exponentially up to a 30 second ceiling (`5, 8, 12, 20, 30, 30, ...`). This is enough because videos usually mature within minutes.
+  </Step>
+  <Step title="Stop at the end">
+    As soon as it is `succeeded` or `failed`, stop polling and store the result.
+  </Step>
+  <Step title="Cap the total age">
+    Stop your own polling at 2 hours. The server closes the job at the same point.
+  </Step>
+</Steps>
+
+```js wait_for_job.js theme={null}
+async function waitForJob(id, { start = 5_000, cap = 30_000, timeout = 2 * 60 * 60_000 } = {}) {
+  const deadline = Date.now() + timeout;
+  let delay = start;
+
+  while (Date.now() < deadline) {
+    const job = (await (await fetch(`${BASE}/jobs/${id}`, { headers })).json()).job;
+    if (job.status === "succeeded" || job.status === "failed") return job;
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 1.6, cap);
+  }
+
+  throw new Error("job masih berjalan setelah 2 jam");
+}
+```
+
+## Backoff when you hit `429`
+
+In Vidgen, `429` means "capacity", not "you are blocked". Wait, then retry:
+
+- If there is a `Retry-After` header (only on `POST /api/v1/upload`), honor its value in seconds.
+- For a `429` without the header, wait 30 seconds, then double the wait on each attempt, up to 5 attempts.
+- If the last attempt still fails, defer the job to the next window and tell the end user.
+
+<Warning>
+  Retrying `POST /api/v1/generate` without an `idempotencyKey` can create two jobs and two charges. Read [Idempotency](/en/concepts/idempotency) first.
+</Warning>

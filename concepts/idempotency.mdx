@@ -1,0 +1,100 @@
+---
+title: "Idempotensi"
+description: "Kirim ulang request yang gagal tanpa membuat job kedua dan tanpa membayar dua kali."
+keywords: ["idempotencyKey", "retry", "request ganda", "202 vs 200"]
+---
+
+Jaringan bisa putus di tengah jalan. Tanpa idempotensi, kamu tidak tahu apakah request itu sudah membuat job atau belum — dan mengirim ulang berarti potensi kredit terpotong dua kali.
+
+`POST /api/v1/generate` menerima field `idempotencyKey` untuk kasus ini.
+
+## Cara pakai
+
+```json theme={null}
+{
+  "model": "seedance-2-5-flash",
+  "prompt": "...",
+  "idempotencyKey": "order-4711-a39f2c7b",
+  "parameters": { "duration": "5", "resolution": "720p", "ratio": "16:9" }
+}
+```
+
+<Steps>
+  <Step title="Buat satu key per keinginan bisnis">
+    Bukan per request HTTP. Kalau pengguna menekan "Generate" untuk order #4711, order itu punya satu key, dan seluruh retry memakai key yang sama.
+  </Step>
+  <Step title="Kirim, dan kalau koneksi terputus, ulangi dengan key yang sama">
+    Gunakan key yang sama sampai kamu menerima respons JSON apa pun.
+  </Step>
+  <Step title="Pahami respons replay">
+    Kalau server sudah pernah melihat key itu, kamu menerima `200 OK` (bukan `202`) dengan job yang lama:
+
+```json theme={null}
+{
+  "success": true,
+  "job": { "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b", "status": "processing", "creditsCharged": 3, "result": null },
+  "queue": { "position": 1 },
+  "idempotent": true
+}
+```
+  </Step>
+</Steps>
+
+Perbedaan status yang perlu kamu tangani:
+
+| Kondisi | Status | Penanda di body |
+| --- | --- | --- |
+| Job baru dibuat | `202 Accepted` | tidak ada `idempotent` |
+| Key sudah pernah dipakai | `200 OK` | `"idempotent": true` |
+
+<Warning>
+  Replay mengembalikan job yang **sudah ada**, tanpa membandingkan isinya. Kalau kamu mengirim key yang sama dengan prompt atau model yang berbeda, perubahan itu diabaikan diam-diam dan kamu hanya mendapat job lama. Kalau memang berubah, itu request baru — pakai key baru.
+</Warning>
+
+## Aturan penamaan key
+
+- Panjang minimal **8 karakter**. Kurang dari itu, server mengabaikan nilai kamu dan membuat key sendiri, sehingga retry-mu tidak terlindungi.
+- Gunakan karakter yang aman di semua sistem: huruf, angka, tanda hubung, garis bawah.
+- Campurkan id bisnis dengan bagian acak, contoh `order-4711-a39f2c7b`. Pencocokan key di server berlaku global, jadi key yang terlalu mudah ditebak (misalnya `coba-1`) berisiko bertabrakan dengan pengguna lain.
+- Key tidak kedaluwarsa. Sekali terpakai, selamanya tercatat — jadi jangan pakai timestamp sebagai key kalau kamu memang ingin request berikutnya menjadi job baru.
+
+## Contoh klien yang aman
+
+```js theme={null}
+async function generateWithRetry(payload, { attempts = 3 } = {}) {
+  const idempotencyKey = `${payload.referenceId}-${crypto.randomUUID().slice(0, 12)}`;
+  let lastError;
+
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const res = await fetch(`${BASE}/generate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, idempotencyKey }),
+      });
+
+      // 429 = kapasitas: tunggu lalu ulangi dengan key yang sama.
+      if (res.status === 429) {
+        lastError = await res.json();
+        await sleep(30_000 * 2 ** i);
+        continue;
+      }
+
+      // 402 dan 400 adalah keputusan final: jangan diulang.
+      if (res.status === 402 || res.status === 400) return { ok: false, error: await res.json() };
+
+      return { ok: res.ok, job: (await res.json()).job };
+    } catch (networkError) {
+      // Request mungkin sudah sampai. Ulangi dengan key yang sama.
+      lastError = networkError;
+      await sleep(2_000 * 2 ** i);
+    }
+  }
+
+  return { ok: false, error: lastError };
+}
+```
+
+<Info>
+  Endpoint `POST /api/v1/upload` dan `GET` tidak perlu idempotensi. Setiap unggahan menghasilkan aset baru, dan `GET` sudah tidak berdampak.
+</Info>

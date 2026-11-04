@@ -1,0 +1,157 @@
+---
+title: "Quickstart"
+description: "Kirim request generate pertama ke Vidgen API dan ambil hasilnya dalam tiga langkah."
+keywords: ["quickstart", "vidgen api contoh", "curl generate video"]
+---
+
+Yang kamu butuhkan: satu [API key](/register) berawalan `vg_` dan kredit atau paket Unlimited yang aktif.
+
+<Steps>
+  <Step title="Buat job">
+    `POST /api/v1/generate` menerima prompt, nama model, dan beberapa parameter. Jawabannya `202 Accepted` — job sudah masuk antrean, bukan sudah selesai.
+
+    <Tabs>
+      <Tab title="cURL">
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/generate \
+  -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "seedance-2-5-flash",
+    "prompt": "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
+    "parameters": {
+      "duration": "5",
+      "ratio": "16:9",
+      "resolution": "720p"
+    }
+  }'
+```
+
+      </Tab>
+      <Tab title="Node.js">
+
+```js theme={null}
+const res = await fetch("https://vidgen.id/api/v1/generate", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.VIDGEN_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "seedance-2-5-flash",
+    prompt: "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
+    parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+  }),
+});
+
+const { job } = await res.json();
+console.log(job.id, job.status);
+```
+
+      </Tab>
+      <Tab title="Python">
+
+```python theme={null}
+import os
+import requests
+
+res = requests.post(
+    "https://vidgen.id/api/v1/generate",
+    headers={"Authorization": f"Bearer {os.environ['VIDGEN_API_KEY']}"},
+    json={
+        "model": "seedance-2-5-flash",
+        "prompt": "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
+        "parameters": {"duration": "5", "ratio": "16:9", "resolution": "720p"},
+    },
+)
+
+job = res.json()["job"]
+print(job["id"], job["status"])
+```
+
+      </Tab>
+    </Tabs>
+
+  </Step>
+
+  <Step title="Baca responsnya">
+    Struktur yang selalu sama:
+
+```json theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "queued",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "Seekor rubah melintasi salju tipis di pagi buta...",
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z"
+  },
+  "queue": {
+    "position": 2,
+    "status": "queued"
+  }
+}
+```
+
+    Simpan `job.id`. Semua yang terjadi selanjutnya dibaca lewat id itu.
+
+    <Warning>
+      `creditsCharged` sudah dipotong pada langkah ini. Kalau job akhirnya gagal, kredit dikembalikan otomatis — tapi kalau kamu mengirim ulang prompt yang sama tanpa `idempotencyKey`, kamu akan membayar dua kali.
+    </Warning>
+  </Step>
+
+  <Step title="Polling sampai selesai">
+    `GET /api/v1/jobs/{jobId}` mengembalikan status terbaru. Cek tiap 5 detik; klip pendek biasanya matang dalam beberapa menit, tapi panjang antrean ikut menentukan.
+
+```bash theme={null}
+curl https://vidgen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
+  -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU"
+```
+
+```json theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "succeeded",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "queuePosition": null,
+    "result": {
+      "url": "https://vidgen.id/api/media-proxy?token=...",
+      "duration": 5,
+      "width": 1280,
+      "height": 720
+    },
+    "errorMessage": null,
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z",
+    "updatedAt": "2026-11-04T09:15:02.000Z"
+  }
+}
+```
+
+    Status yang mungkin: `queued`, `dispatching`, `processing`, `succeeded`, `failed`, `cancelled`. Selama belum `succeeded`, field `result` bernilai `null`.
+  </Step>
+
+  <Step title="Unduh dan simpan">
+    `result.url` dijamin bisa diakses publik selama **24 jam**. Setelah itu tautannya mati.
+
+```bash theme={null}
+curl -L -o video.mp4 "https://vidgen.id/api/media-proxy?token=..."
+```
+
+    Simpan filenya ke storage kamu sendiri (S3, R2, disk) begitu status `succeeded`. Jangan menyimpan URL-nya sebagai arsip.
+  </Step>
+</Steps>
+
+## Sering dipakai setelah ini
+
+- [Pilih model dan parameter](/concepts/models) — isi katalog bisa dibaca dari runtime lewat `GET /api/v1/models`.
+- [Kirim gambar/video referensi](/concepts/reference-media) — untuk face-lock, produk, atau motion control.
+- [Retry aman dengan idempotencyKey](/concepts/idempotency).
+- [Tabel kode error](/troubleshooting/errors).

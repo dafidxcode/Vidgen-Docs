@@ -1,0 +1,94 @@
+---
+title: "Credits & pricing"
+description: "How the cost of one generation is calculated, when credits are refunded, and what the Unlimited package covers."
+keywords: ["vidgen credit pricing", "api billing", "unlimited", "402 payment required"]
+---
+
+## Credit deduction happens up front
+
+When `POST /api/v1/generate` is accepted, credits are deducted immediately, before the job enters the queue. If the job ends `failed`, the credits are refunded automatically. You do not pay for engine failures.
+
+What is **not** refunded: jobs you cancel yourself after they were successfully dispatched, and requests rejected before a job was created (so those never deducted anything).
+
+## How the price is calculated
+
+The server looks up the price in the following order and stops at the first match:
+
+<Steps>
+  <Step title="`quality:resolution`">
+    For image models that have both keys, for example `low:2K`.
+  </Step>
+  <Step title="`resolution:duration`">
+    Combinations such as `720p:15`; the check tolerates order and the trailing `s`.
+  </Step>
+  <Step title="`duration`">
+    A single override per duration, for example `"30": 15`.
+  </Step>
+  <Step title="`resolution`">
+    A single override per resolution, for example `"4K": 2`.
+  </Step>
+  <Step title="`creditsDefault`">
+    The model's base price.
+  </Step>
+</Steps>
+
+That is why **prices can differ for requests that look the same**: `resolution: "720p", duration: "30"` can cost more than `duration: "15"`.
+
+<Info>
+  Price numbers are set by admins and can change. The only source of truth is `priceMatrix` and `creditsDefault` from `GET /api/v1/models` — do not copy a price table into your code.
+</Info>
+
+## Reference cost
+
+Adding a reference image or video does not increase the price today (`referenceSurcharge` is 0). For motion control models, the reference video's duration actually determines the output duration — and that duration is what gets billed.
+
+## Not enough credits
+
+```json theme={null}
+{
+  "error": "Kredit akun tidak mencukupi. Pembuatan ini membutuhkan 10 kredit",
+  "requiredCredits": 10,
+  "currentCredits": 4
+}
+```
+
+Status `402`. No job is created and no credits are used. The cheapest way to avoid this error is to read your balance before sending a batch — see [`GET /api/v1/user/credits`](/en/api-reference/credits).
+
+## Unlimited packages
+
+An Unlimited purchase grants a time-based quota, not a credit balance. While it is active, generation on **eligible models** deducts 0 credits and the `creditsCharged` field in the response is `0`.
+
+There are limits:
+
+- Only certain video/image models are covered by the Unlimited quota. Other models still deduct normal credits even on an Unlimited account. Check eligibility with `unlimited.active` from `/api/v1/user/credits`, then match models through the dashboard.
+- Maximum of **2 concurrent processes**. A third is answered `429`.
+- The daily video quota still applies (50 successful videos per day).
+
+## Pay and check your balance
+
+Top up credits through the [dashboard](https://vidgen.id/billing) (QRIS). Balance monitoring should happen on your server, not in the frontend:
+
+```bash theme={null}
+curl https://vidgen.id/api/v1/user/credits \
+  -H "Authorization: Bearer vg_KEY_KAMU"
+```
+
+```json theme={null}
+{
+  "success": true,
+  "user": { "uid": "...", "email": "...", "credits": 128 },
+  "unlimited": { "active": false, "daysLeft": 0, "expiresAt": null },
+  "limits": {
+    "maxConcurrentJobs": 2,
+    "currentActiveJobs": 0,
+    "dailyVideoLimit": 50,
+    "dailyVideosGenerated": 12,
+    "dailyVideosRemaining": 38,
+    "resetsAt": "00:00 WIB"
+  }
+}
+```
+
+<Warning>
+  `credits` can be a fractional number (for example 1.5) because some image models cost less than one credit. Do not round down on your side before comparing it with a price.
+</Warning>

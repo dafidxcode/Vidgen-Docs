@@ -1,0 +1,148 @@
+---
+title: "Kode error"
+description: "Setiap status HTTP yang dikembalikan Vidgen API, pesan aslinya, dan apa yang harus kamu lakukan."
+keywords: ["401", "402", "429", "error vidgen api", "status code"]
+---
+
+Semua kegagalan memakai body `{ "error": "..." }`. Field diagnostik tambahan hanya muncul di beberapa kode.
+
+<AccordionGroup>
+  <Accordion title="400 — permintaan ditolak" icon="circle-alert" defaultOpen>
+    Tubuh permintaan tidak bisa dibaca atau tidak lolos validasi. Job tidak dibuat, kredit tidak terpotong.
+
+    | Pesan | Penyebab |
+    | --- | --- |
+    | `Body permintaan harus berupa JSON yang valid.` | Salah serialisasi, `Content-Type` tidak cocok, atau body kosong. |
+    | `Prompt tidak boleh kosong.` | `prompt` kosong pada model non-motion. |
+    | `Model "..." tidak ditemukan.` | Id model salah tulis, atau model sudah dipensiunkan. |
+    | `Parameter tidak valid: ...` | Nilai `duration`/`resolution`/`ratio` tidak ada di `capabilities` model. Body ikut mengirim array `fields`. |
+    | `Maksimal N gambar referensi.` | Jumlah referensi melebihi batas model. |
+    | `Model gambar hanya mendukung referensi gambar (maksimal N gambar).` | Kirim video/audio ke model image. |
+    | `Gagal mengunduh media referensi dari URL: ... (HTTP ...)` | URL referensi tidak bisa diambil server (403, 404, atau timeout). |
+    | `Durasi Video referensi (...) di luar batas (2-15 detik).` | Referensi terlalu pendek atau terlalu panjang untuk jalur ini. |
+    | `Resolusi video ... terlalu kecil untuk video referensi.` | Di bawah 300.000 piksel total atau sisi terpendek < 360 px. |
+    | `Durasi video referensi tidak bisa dibaca. Ekspor videonya sebagai MP4 (bukan WebM) lalu unggah ulang.` | Metadata durasi tidak terbaca pada model motion. |
+    | `Permintaan harus berupa multipart/form-data dengan field "file".` | Upload dikirim sebagai JSON. |
+    | `Field "file" wajib diisi dengan berkas media.` | Nama field form salah. |
+    | `Format berkas tidak valid. ...` | Isi berkas bukan JPG/PNG/WebP/MP4/WebM/MP3/WAV. |
+
+    <Tip>
+      Untuk error `Parameter tidak valid`, jangan coba-coba nilai lain. Ambil ulang `GET /api/v1/models` dan pakai array yang tercantum.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="401 — autentikasi gagal" icon="key-round">
+    | Pesan | Penyebab |
+    | --- | --- |
+    | `Header Authorization (Bearer vg_...) atau x-api-key diperlukan.` | Tidak ada header kredensial. |
+    | `Format API Key tidak valid. API Key Vidgen harus diawali dengan "vg_".` | Prefix hilang, atau key milik layanan lain. |
+    | `API Key tidak valid atau telah dicabut.` | Key salah ketik atau sudah dihapus dari akun. |
+    | `Pengguna pemilik API Key tidak ditemukan.` | Akun pemilik key sudah dihapus. |
+
+    Jangan pernah mengulang request `401`. Perbaiki kredensialnya lebih dulu.
+  </Accordion>
+
+  <Accordion title="402 — kredit tidak cukup" icon="coins">
+```json theme={null}
+{
+  "error": "Kredit akun tidak mencukupi. Pembuatan ini membutuhkan 10 kredit",
+  "requiredCredits": 10,
+  "currentCredits": 4
+}
+```
+    Solusinya adalah top-up, bukan retry. Bandingkan `requiredCredits` dengan harga perkiraan dari katalog sebelum mengirim batch.
+  </Accordion>
+
+  <Accordion title="403 — bukan job-mu" icon="lock">
+```json theme={null}
+{ "error": "Akses ditolak: Job ini bukan milik akun Anda." }
+```
+    Terjadi ketika `GET /api/v1/jobs/{id}` memakai id milik akun lain — biasanya karena id dihardcode atau key yang dipakai berganti. Job milik sendiri tidak pernah kena kode ini.
+  </Accordion>
+
+  <Accordion title="409 — model tidak tersedia" icon="ban">
+```json theme={null}
+{ "error": "Model \"...\" sedang tidak tersedia. Pilih model lain." }
+```
+    Modelnya dikenal tapi sedang dimatikan. Segarkan katalog dan pindahkan permintaan ke model lain; jangan diulang ke model yang sama.
+  </Accordion>
+
+  <Accordion title="413 — berkas terlalu besar" icon="file-x">
+```json theme={null}
+{ "error": "Ukuran berkas melebihi batas maksimal 100 MB." }
+```
+    Kompres atau potong dulu. Batas ini berlaku sebelum isi berkas diperiksa, jadi tidak bisa dinegosiasikan lewat parameter.
+  </Accordion>
+
+  <Accordion title="429 — kapasitas" icon="gauge" defaultOpen>
+    Tiga sebab berbeda, bentuk body berbeda:
+
+    **Konkurensi penuh (akun Unlimited)**
+
+```json theme={null}
+{
+  "error": "Maksimal 2 proses generate bersamaan. Tunggu salah satunya selesai sebelum memulai yang baru.",
+  "maxConcurrent": 2,
+  "activeJobs": 2
+}
+```
+
+    **Kuota video harian habis**
+
+```json theme={null}
+{
+  "error": "Batas harian tercapai, kuota harian direset pukul 00:00 WIB.",
+  "dailyLimitReached": true,
+  "dailyVideosUsed": 50,
+  "resetsAt": "00:00 WIB"
+}
+```
+
+    **Antrean server penuh / unggahan terlalu sering**
+
+```json theme={null}
+{ "error": "Antrean penuh. Silakan coba sesaat lagi." }
+```
+
+    Pada `POST /api/v1/upload`, respons membawa header `Retry-After` dalam detik. Hormati nilainya.
+
+    <Warning>
+      `429` berarti tunggu, bukan ganti key. Membuat API key baru tidak menaikkan batas apa pun karena semua batas menempel di akun.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="500 — kegagalan di sisi Vidgen" icon="server-crash">
+```json theme={null}
+{ "error": "Gagal memuat katalog model." }
+```
+    Jarang, dan tidak memakan kredit. Laporkan beserta waktu dan endpoint-nya.
+  </Accordion>
+
+  <Accordion title="503 — tidak bisa diproses sekarang" icon="wrench">
+    | Pesan | Penyebab |
+    | --- | --- |
+    | `Vidgen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara.` | Situs ditutup sementara; semua key ikut ditolak. |
+    | `Layanan autentikasi API Key sedang tidak tersedia.` | Layanan sesi sedang bermasalah. |
+    | `Layanan kredit tidak dapat diakses saat ini. Silakan coba sesaat lagi.` | Saldo tidak bisa dibaca, jadi tidak ada kredit yang dipotong. |
+    | `Gagal membuat antrean pemrosesan job. Kredit telah dikembalikan.` | Job gagal disimpan; refund sudah dijalankan. |
+
+    Gunakan backoff eksponensial dan pertahankan `idempotencyKey` yang sama.
+  </Accordion>
+</AccordionGroup>
+
+## Kesalahan yang muncul sebagai `failed`, bukan status HTTP
+
+Kasus ini datang belakangan, dari `errorMessage` di [`GET /api/v1/jobs/{id}`](/api-reference/get-job). Kredit sudah dipotong lalu dikembalikan, jadi periksa `creditsCharged` yang tersisa `0`.
+
+| Pesan | Artinya |
+| --- | --- |
+| `Prompt or reference content triggered AI safety filters ...` | Konten kena filter keamanan. Revisi prompt atau referensi. |
+| `Reference video duration is not supported by this model. ...` | Durasi referensi di luar aturan model motion. |
+| `Failed to align character with video motion ...` | Wajah/gerakan pada referensi tidak terdeteksi cocok. |
+| `This model is temporarily unavailable on our side. ...` | Gangguan sementara di sisi Vidgen. Coba lagi atau ganti model. |
+| `The processing service is temporarily undergoing maintenance. ...` | Kapasitas sedang diperbaiki. Tunda, jangan salahkan pengguna. |
+| `Queue temporarily throttled due to repeated submission of high-risk content. ...` | Terlalu banyak konten berisiko tinggi dari akun ini. Tunggu 1-2 menit. |
+
+<Note>
+  Pesan `errorMessage` sengaja berbahasa Inggris di respons API. Silakan diterjemahkan ke bahasa UI kamu, tapi jangan diubah artinya saat ditampilkan ke pengguna akhir.
+</Note>

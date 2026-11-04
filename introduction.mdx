@@ -1,0 +1,76 @@
+---
+title: "Pendahuluan"
+description: "Apa itu Vidgen API, apa yang didukung, dan bagaimana siklus hidup sebuah job."
+keywords: ["pengantar vidgen api", "async job", "text to video api indonesia"]
+---
+
+Vidgen API adalah HTTP API resmi untuk mesin generate Vidgen. Semua yang bisa kamu lakukan di dashboard — membuat video dari teks, menganimasikan gambar, memindahkan gerakan dari video referensi — tersedia lewat endpoint yang sama, dengan kredit dan antrean yang sama.
+
+## Apa yang didukung
+
+| Kemampuan | Status di API |
+| --- | --- |
+| Video dari teks (`t2v`) | Didukung penuh |
+| Video dari gambar (`i2v`) | Didukung — kirim gambar referensi |
+| Motion control / transfer gerakan | Didukung — butuh video referensi |
+| Gambar (text-to-image, image edit) | Didukung penuh |
+| Audio / musik | Baru tersedia di dashboard, belum lewat API key |
+| Transkripsi, hapus watermark, face-mask, storyboard | Hanya di dashboard |
+
+Daftar model bisa berubah tanpa notices karena katalog diatur dari server. Selalukan baca [katalog runtime](/api-reference/models) sebelum menampilkan pilihan model di produk kamu.
+
+## Siklus hidup job
+
+```text theme={null}
+POST /api/v1/generate
+        │
+        ├─ 401/402/429 ...      (ditolak, tidak ada kredit yang terpakai)
+        │
+        └─ 202 Accepted, status "queued"
+                    │
+              antrean  ├─ "dispatching"
+                       ├─ "processing"
+                       ├─ "succeeded"  → result.url tersedia
+                       └─ "failed"     → kredit dikembalikan otomatis
+```
+
+Job tidak pernah selesai di dalam satu request. Jangan menahan koneksi HTTP menunggu hasil; pakai polling `GET /api/v1/jobs/{id}`.
+
+## Objek job
+
+Respons `job` adalah objek yang sama di kedua endpoint:
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `id` | string | Id yang dipakai untuk polling. |
+| `status` | string | `queued` \| `dispatching` \| `processing` \| `succeeded` \| `failed` \| `cancelled`. |
+| `model` | string | Id model yang dipakai. |
+| `category` | string | `Video` \| `Image` \| `Audio`. |
+| `prompt` | string | Prompt yang tersimpan setelah penyaringan konten. |
+| `queuePosition` | number \| null | Posisi antrean, hanya saat `queued`. |
+| `result` | object \| null | `{ url, duration, width, height }` hanya saat `succeeded`. |
+| `errorMessage` | string \| null | Pesan yang layak dibaca pengguna saat `failed`. |
+| `creditsCharged` | number | Kredit yang dipotong (0 jika kuota Unlimited terpakai). |
+| `createdAt`, `updatedAt` | string ISO-8601 | Waktu server (UTC). |
+
+## Kaidah yang berlaku di seluruh API
+
+- Autentikasi memakai API key, bukan cookie sesi. Lihat [Autentikasi](/authentication).
+- Base URL: `https://vidgen.id/api/v1`. Lihat [Base URL](/api-base-url).
+- Semua request dan respons berbentuk JSON kecuali `POST /api/v1/upload` yang memakai `multipart/form-data`.
+- Kesalahan selalu dijawab dengan body `{ "error": "..." }` dan kode status HTTP yang berarti. Beberapa error menambahkan field diagnostik (`requiredCredits`, `maxConcurrent`, `dailyVideosUsed`).
+- Kredit dipotong di muka dan dikembalikan kalau job gagal.
+- Umur job maksimal 2 jam. Job yang tidak selesai sampai lewat batas ditandai `failed` dan dikreditkan kembali.
+
+## Batas singkat
+
+| Batas | Nilai |
+| --- | --- |
+| Job aktif bersamaan (akun Unlimited) | 2 |
+| Video sukses per hari | 50, reset 00:00 WIB |
+| Unggahan media | 60 berkas / jam |
+| Ukuran berkas | 100 MB |
+| Kedalaman antrean server | 100 job |
+| Masa berlaku tautan hasil | 24 jam |
+
+Rinciannya di [Konkurensi & batas](/concepts/concurrency-limits).

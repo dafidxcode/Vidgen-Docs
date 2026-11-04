@@ -1,0 +1,230 @@
+---
+title: "Ambil status job"
+description: "Polling status sebuah job generate, mendapat posisi antrean, dan mengambil URL hasil."
+keywords: ["GET /api/v1/jobs", "polling", "status job", "result url"]
+api: 'GET /api/v1/jobs/{id}'
+---
+
+Mengembalikan kondisi terbaru sebuah job. Memanggil endpoint ini pada job yang sedang `processing` juga memicu Vidgen memeriksa penyedia di belakang layar, jadi polling adalah satu-satunya sinyal yang kamu butuhkan.
+
+<Warning>
+  Job hanya bisa dibaca oleh akun pemiliknya. Job milik akun lain dijawab `403`, bukan `404`.
+</Warning>
+
+### Authorizations
+
+<ParamField path="Authorization" type="string" required>
+  API key berformat `Bearer vg_...`.
+</ParamField>
+
+### Path parameters
+
+<ParamField path="id" type="string" required>
+  `job.id` dari respons [`POST /api/v1/generate`](/api-reference/generate), contoh `9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b`.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl https://vidgen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
+  -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
+```
+
+```js Node.js theme={null}
+const res = await fetch(`https://vidgen.id/api/v1/jobs/${jobId}`, {
+  headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
+});
+
+const { job } = await res.json();
+console.log(job.status, job.queuePosition, job.result?.url);
+```
+
+```python Python theme={null}
+job = requests.get(
+    f"https://vidgen.id/api/v1/jobs/{job_id}",
+    headers={"Authorization": f"Bearer {api_key}"},
+).json()["job"]
+
+print(job["status"], job["result"])
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean" required>
+  `true` sepanjang job bisa dibaca, termasuk saat job-nya `failed`.
+</ResponseField>
+
+<ResponseField name="job" type="object" required>
+  <Expandable title="sifat job" defaultOpen>
+    <ResponseField name="id" type="string" required>
+      Id yang kamu minta.
+    </ResponseField>
+    <ResponseField name="status" type="string" required>
+      Salah satu dari `queued`, `dispatching`, `processing`, `succeeded`, `failed`, `cancelled`.
+    </ResponseField>
+    <ResponseField name="model" type="string">
+      Id model.
+    </ResponseField>
+    <ResponseField name="category" type="string">
+      `"Video"`, `"Image"`, atau `"Audio"`.
+    </ResponseField>
+    <ResponseField name="prompt" type="string">
+      Prompt yang tersimpan setelah penyaringan.
+    </ResponseField>
+    <ResponseField name="queuePosition" type="number | null">
+      Posisi antrean. Hanya bernilai saat `status === "queued"`; `null` di luar itu, termasuk bila posisinya tidak bisa dibaca.
+    </ResponseField>
+    <ResponseField name="result" type="object | null">
+      `null` sampai job berhasil. Setelah `succeeded`:
+
+      <Expandable title="isi result">
+        <ResponseField name="url" type="string" required>
+          Tautan media. Bisa `/api/media/...` atau `/api/media-proxy?token=...` dengan masa berlaku 24 jam.
+        </ResponseField>
+        <ResponseField name="duration" type="number | null">
+          Detik keluaran, bila tersedia.
+        </ResponseField>
+        <ResponseField name="width" type="number | null">
+          Lebar piksel aktual.
+        </ResponseField>
+        <ResponseField name="height" type="number | null">
+          Tinggi piksel aktual.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    <ResponseField name="errorMessage" type="string | null">
+      Penjelasan kegagalan, sudah disaring dan berbahasa Inggris. `null` selama job belum gagal.
+    </ResponseField>
+    <ResponseField name="creditsCharged" type="number" required>
+      Kredit terpakai. Bernilai `0` pada job yang gagal karena kredit dikembalikan, dan `0` sejak awal bila kuota Unlimited yang membiayai.
+    </ResponseField>
+    <ResponseField name="createdAt" type="string (ISO 8601)">
+      Waktu job dibuat.
+    </ResponseField>
+    <ResponseField name="updatedAt" type="string (ISO 8601)">
+      Waktu perubahan status terakhir. Berguna untuk mendeteksi job yang macet.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+
+```json 200 — masih antre theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "queued",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi",
+    "queuePosition": 2,
+    "result": null,
+    "errorMessage": null,
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z",
+    "updatedAt": "2026-11-04T09:12:44.000Z"
+  }
+}
+```
+
+```json 200 — berhasil theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "succeeded",
+    "model": "seedance-2-5-flash",
+    "category": "Video",
+    "prompt": "secangkir kopi di meja kayu, cahaya pagi",
+    "queuePosition": null,
+    "result": {
+      "url": "https://vidgen.id/api/media-proxy?token=3f9c...e1a2",
+      "duration": 5,
+      "width": 1280,
+      "height": 720
+    },
+    "errorMessage": null,
+    "creditsCharged": 3,
+    "createdAt": "2026-11-04T09:12:44.000Z",
+    "updatedAt": "2026-11-04T09:15:02.000Z"
+  }
+}
+```
+
+```json 200 — gagal theme={null}
+{
+  "success": true,
+  "job": {
+    "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
+    "status": "failed",
+    "queuePosition": null,
+    "result": null,
+    "errorMessage": "This model is temporarily unavailable on our side. Please try again in a few minutes.",
+    "creditsCharged": 0
+  }
+}
+```
+
+```json 404 theme={null}
+{ "error": "Job tidak ditemukan." }
+```
+
+</ResponseExample>
+
+## Pola polling
+
+<CodeGroup>
+
+```js setInterval theme={null}
+const timer = setInterval(async () => {
+  const job = (await (await fetch(url, { headers })).json()).job;
+
+  if (["succeeded", "failed", "cancelled"].includes(job.status)) {
+    clearInterval(timer);
+    onDone(job);
+  }
+}, 5000);
+
+setTimeout(() => clearInterval(timer), 2 * 60 * 60 * 1000);
+```
+
+```js backoff theme={null}
+let delay = 5000;
+for (;;) {
+  const job = (await (await fetch(url, { headers })).json()).job;
+  if (job.status !== "queued" && job.status !== "processing") return job;
+  await sleep(delay);
+  delay = Math.min(delay * 1.6, 30000);
+}
+```
+
+```python polling theme={null}
+interval = 5.0
+while True:
+    job = api.job(job_id)
+    if job["status"] in {"succeeded", "failed", "cancelled"}:
+        break
+    time.sleep(interval)
+    interval = min(interval * 1.6, 30.0)
+```
+
+```bash bash theme={null}
+while true; do
+  status=$(curl -s -H "Authorization: Bearer $VIDGEN_API_KEY" \
+    "https://vidgen.id/api/v1/jobs/$JOB_ID" | jq -r .job.status)
+  echo "$status"
+  if [ "$status" = "succeeded" ] || [ "$status" = "failed" ] || [ "$status" = "cancelled" ]; then
+    break
+  fi
+  sleep 5
+done
+```
+
+</CodeGroup>
+
+<Note>
+  Endpoint ini tidak memotong kredit dan boleh dipanggil sesering yang kamu mau — tapi 2 jam adalah umur maksimal job. Setelah itu status akan menjadi `failed` dan polling sebaiknya berhenti.
+</Note>

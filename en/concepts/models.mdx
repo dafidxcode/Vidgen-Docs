@@ -1,0 +1,99 @@
+---
+title: "Model catalog"
+description: "How to read the Vidgen model list at runtime, what each capability means, and how model ids are matched."
+keywords: ["vidgen models", "model catalog", "seedance", "kling", "supported parameters"]
+---
+
+Vidgen models are managed from the server and can change at any time — new models are added, old ones are retired, and credit prices are adjusted. So **do not hardcode the model list** in your product. Read it at runtime:
+
+```bash theme={null}
+curl https://vidgen.id/api/v1/models
+```
+
+This endpoint is public (no API key) and returns three buckets: `video`, `image`, `audio`. Only active models are returned.
+
+## Shape of one entry
+
+```json theme={null}
+{
+  "id": "seedance-2-5-flash",
+  "label": "Seedance 2.5 Flash",
+  "category": "Video",
+  "mode": "video",
+  "creditsDefault": 3,
+  "priceMatrix": { "20": 3 },
+  "capabilities": {
+    "durations": ["20"],
+    "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+    "resolutions": ["720p"],
+    "maxReferenceImages": 9,
+    "maxReferenceVideos": 1,
+    "maxReferenceAudios": 1
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `id` | The value you send in the `model` field of the body. |
+| `label` | Display name. It can change; do not use it as a logic key. |
+| `category` | `Video` \| `Image` \| `Audio`. |
+| `mode` | Same as `category` but lowercase; used to pick the parameter tab. |
+| `creditsDefault` | Base price in credits when no override matches. |
+| `priceMatrix` | Per-key overrides: `"15"`, `"720p"`, `"720p:15"`, or `"low:2K"` (quality:resolution). |
+| `capabilities.durations` | Valid values for `parameters.duration`. |
+| `capabilities.ratios` | Valid values for `parameters.ratio`. `auto` is always accepted and is not validated. |
+| `capabilities.resolutions` | Valid values for `parameters.resolution`. |
+| `capabilities.maxReferenceImages` / `Videos` / `Audios` | How many references of that kind you may send. |
+
+Some models also return `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, or `supportsSeed`. If the key is absent, the server ignores that parameter — no error, no effect.
+
+## Parameters the API understands
+
+Only the following keys are read from the `parameters` object:
+
+| Key | Applies to | Notes |
+| --- | --- | --- |
+| `duration` | Video | You may write `"5"` or `"5s"`; the trailing `s` is stripped. |
+| `resolution` | Video, Image | Validated against `capabilities.resolutions`. |
+| `ratio` | Video, Image | The alias `aspect_ratio` is also accepted. |
+| `quality` | Image | Only if the model has `qualities`. |
+| `background` | Image | Only if the model has `backgrounds`. |
+| `output_format` (or `format`) | Image, Audio | Only if the model has `outputFormats`. |
+| `negative_prompt` | Some models | Only if `supportsNegativePrompt`. |
+| `seed` | Some models | Only if `supportsSeed`. |
+| `orientation` | Motion control only | `image` or `video`. |
+
+Other keys you send (for example `style`, `title`, `camera`) are **not** processed and are not stored as an error. Validation happens before the job is created, so a typo in `parameters` fails silently.
+
+<Note>
+  If you need a parameter that does not exist yet, send a request through support. Adding a new key will not break existing integrations.
+</Note>
+
+## Id matching
+
+`model` is matched against the id column in the catalog, and spellings with dots and hyphens are treated as equivalent:
+
+```text theme={null}
+seedance-2-5-flash  ==  seedance.2.5.flash
+```
+
+Some ids have internal aliases (for example `vidgen-1.0`). The recommendation stays the same: use the `id` exactly as it appears in the `GET /api/v1/models` response.
+
+Models that are currently disabled **stay in** the database so that old history keeps its labels, but they do not appear in the catalog and cannot be run. A request for an inactive model is answered `409`.
+
+## Motion control models
+
+Models with motion transfer capability have their own rules:
+
+- `prompt` may be empty — the motion comes from the reference video.
+- The duration of the reference video determines the output duration (and the price), not the number you send in `parameters.duration`.
+- Reference duration limits are looser than for regular models; see [Reference media](/en/concepts/reference-media).
+
+<Note>
+  There is no `motion` flag in `GET /api/v1/models`. Motion control models are recognized by their name in the dashboard; if you need to filter them programmatically, ask through support before hardcoding a list of ids.
+</Note>
+
+## Audio
+
+The catalog includes an `audio` bucket, but audio generation through an API key **is not open yet**. Sending `mode: "audio"` today creates a job that fails partway through with a credit refund. Audio generation is still dashboard-only.

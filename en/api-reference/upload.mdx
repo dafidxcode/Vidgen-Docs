@@ -1,0 +1,164 @@
+---
+title: "Upload reference media"
+description: "Upload an image, video, or audio file for use as a generation reference. Returns an asset object."
+keywords: ["POST /api/v1/upload", "multipart", "upload reference image", "image to video source material"]
+api: 'POST /api/v1/upload'
+---
+
+Stores one media file in Vidgen and returns an `asset` object that you can paste directly into `references` on [`POST /api/v1/generate`](/en/api-reference/generate).
+
+This endpoint uses `multipart/form-data`, not JSON.
+
+### Authorizations
+
+<ParamField path="Authorization" type="string" required>
+  API key formatted `Bearer vg_...`.
+</ParamField>
+
+### Form data
+
+<ParamField body="file" type="binary (multipart)" required>
+  A single file. Images JPG/PNG/WebP, video MP4/WebM, or audio MP3/WAV. Maximum 100 MB; empty files are rejected. The format is recognized from the file contents, not from the extension or `Content-Type`.
+</ParamField>
+
+<ParamField body="model" type="string">
+  Target model id. Not required, but it decides which rules the server applies:
+
+  - Motion control models: the reference video duration range is loosened to 3–30 seconds and the video is **not** trimmed automatically.
+  - Other models: video longer than 15 seconds is trimmed to about 14.5 seconds, and audio must be 2–15 seconds.
+  - Some storage paths store files differently per model.
+</ParamField>
+
+<Warning>
+  If you upload a reference video for motion control without `model`, the server treats it as a general video and trims it to 14.5 seconds.
+</Warning>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl -X POST https://vidgen.id/api/v1/upload \
+  -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
+  -F "file=@gerakan.mp4" \
+  -F "model=kling-mc-3-0-pro"
+```
+
+```js Node.js theme={null}
+const form = new FormData();
+form.append("file", new Blob([bytes], { type: "video/mp4" }), "gerakan.mp4");
+form.append("model", "kling-mc-3-0-pro");
+
+const { asset } = await (
+  await fetch("https://vidgen.id/api/v1/upload", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
+    body: form,
+  })
+).json();
+```
+
+```python Python theme={null}
+with open("gerakan.mp4", "rb") as f:
+    res = requests.post(
+        "https://vidgen.id/api/v1/upload",
+        headers={"Authorization": f"Bearer {api_key}"},
+        files={"file": f},
+        data={"model": "kling-mc-3-0-pro"},
+        timeout=180,
+    )
+
+asset = res.json()["asset"]
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean" required>
+  `true` when the file was stored.
+</ResponseField>
+
+<ResponseField name="asset" type="object" required>
+  Carry this object whole into the `references` field.
+
+  <Expandable title="contents of asset" defaultOpen>
+    <ResponseField name="id" type="string" required>
+      Asset identifier. On the local storage path it is the file name on the server, for example `ref_api_1762261900_gerakan.mp4`.
+    </ResponseField>
+    <ResponseField name="url" type="string" required>
+      Media location. Usually `/api/media/{nama-berkas}`.
+    </ResponseField>
+    <ResponseField name="file_url" type="string">
+      Identical to `url` on the local storage path. On other paths it holds the full link.
+    </ResponseField>
+    <ResponseField name="type" type="string" required>
+      `"image"`, `"video"`, or `"audio"` — the result of inspecting the file contents.
+    </ResponseField>
+    <ResponseField name="filename" type="string">
+      File name in server storage, **not** the name you sent. Do not build paths from it.
+    </ResponseField>
+    <ResponseField name="duration" type="number">
+      Seconds for video/audio. This key is **absent** when the length cannot be detected (for example, images). On motion control models this is the value that determines the output duration.
+    </ResponseField>
+    <ResponseField name="width" type="number">
+      Detected width; also absent when unavailable.
+    </ResponseField>
+    <ResponseField name="height" type="number">
+      Detected height; also absent when unavailable.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+
+```json 200 theme={null}
+{
+  "success": true,
+  "asset": {
+    "id": "ref_api_1762261900_gerakan.mp4",
+    "url": "/api/media/ref_api_1762261900_gerakan.mp4",
+    "file_url": "/api/media/ref_api_1762261900_gerakan.mp4",
+    "type": "video",
+    "filename": "ref_api_1762261900_gerakan.mp4",
+    "duration": 8.42,
+    "width": 1080,
+    "height": 1920
+  }
+}
+```
+
+```json 400 — duration out of range theme={null}
+{
+  "error": "Durasi Video referensi (48.0 detik) di luar batas (2-15 detik)."
+}
+```
+
+```json 413 — file too large theme={null}
+{
+  "error": "Ukuran berkas melebihi batas maksimal 100 MB."
+}
+```
+
+```json 429 — upload limit reached theme={null}
+{
+  "error": "Batas unggah media tercapai (maksimal 60 berkas per jam). Coba lagi dalam 12 menit."
+}
+```
+
+</ResponseExample>
+
+## Limits enforced here
+
+| Aspect | Rule |
+| --- | --- |
+| Size | 100 MB per file |
+| Rate | 60 files per hour per account, with a `Retry-After` header when you hit `429` |
+| Image too small | Shortest side below 100 px → `400` |
+| Image too large | Shortest side < 300 px, longest side > 1920 px, total > 4 million px, or > 3 MB → downscaled automatically |
+| General video/audio | Duration 2–15 seconds; longer video is trimmed to about 14.5 seconds |
+| Motion control | Duration 3–30 seconds; `orientation: "image"` caps it at 10 seconds |
+| Reference video minimum | Total pixels ≥ 300,000 and shortest side ≥ 360 px |
+| Unreadable duration (motion) | `400` — re-export as MP4 |
+
+<Note>
+  Assets have no client-facing expiry date. If you need to reuse the same reference for weeks, keep the original file in your own storage and upload it again when needed.
+</Note>

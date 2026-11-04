@@ -1,0 +1,75 @@
+---
+title: "API reference overview"
+description: "The five Vidgen API endpoints, the standard error shape, and the things that stay consistent across endpoints."
+keywords: ["api reference", "vidgen endpoints", "error format"]
+---
+
+The Vidgen API has five endpoints. They all use the same origin, the same authentication, and the same error shape.
+
+| Method | Path | Auth | Responds |
+| --- | --- | --- | --- |
+| `POST` | [`/api/v1/generate`](/en/api-reference/generate) | API key | `202` new job, `200` idempotent replay |
+| `GET` | [`/api/v1/jobs/{id}`](/en/api-reference/get-job) | API key | `200` |
+| `POST` | [`/api/v1/upload`](/en/api-reference/upload) | API key | `200` asset object |
+| `GET` | [`/api/v1/models`](/en/api-reference/models) | public | `200` |
+| `GET` | [`/api/v1/user/credits`](/en/api-reference/credits) | API key | `200` |
+
+## Conventions
+
+- **Base URL** `https://vidgen.id`, path prefix `/api/v1`. See [Base URL](/en/api-base-url).
+- **Authentication** through `Authorization: Bearer vg_...` **or** `x-api-key: vg_...`. See [Authentication](/en/authentication).
+- **Content type** `application/json; charset=utf-8`, except uploads, which use `multipart/form-data`.
+- **Timestamps** use ISO-8601 UTC (`2026-11-04T09:12:44.000Z`). Daily quotas are counted in WIB.
+- **Success bodies** always include `"success": true` next to the data.
+- **No CORS**: call from a server, not from a browser.
+
+## Error shape
+
+Every failure uses this body:
+
+```json theme={null}
+{ "error": "Pesan yang layak dibaca manusia." }
+```
+
+What distinguishes them is the HTTP status. Some errors add diagnostic fields:
+
+| Status | Meaning | Extra fields |
+| --- | --- | --- |
+| `400` | The request could not be understood or failed validation | `fields` (when a parameter is the problem) |
+| `401` | Key missing, wrong format, or revoked | — |
+| `402` | Not enough credits | `requiredCredits`, `currentCredits` |
+| `403` | The job does not belong to this account | — |
+| `409` | The model exists but is not active right now | — |
+| `413` | The file exceeds 100 MB | — |
+| `429` | Concurrency limit, daily quota, queue full, or upload limit | `maxConcurrent`, `activeJobs`, `dailyVideosUsed`, `resetsAt`; `Retry-After` header on upload |
+| `500` | A failure on the Vidgen side while loading data | — |
+| `503` | Maintenance, or the session/credit service is unreachable | — |
+
+<Info>
+  Vidgen does not issue its own numeric error codes. Do not parse strings for logic — use the HTTP status, then read the diagnostic fields if any are present.
+</Info>
+
+## Error messages never contain internal details
+
+The path to the user is filtered: provider names, internal URLs, and raw responses from upstream systems never appear in `error` or `errorMessage`. What you get is a sentence you can pass straight to an end user. If something looks off, report the `job.id` together with its status.
+
+## OpenAPI spec
+
+There is an OpenAPI 3.1 spec in the documentation repository (`/openapi.json`), provided as an artifact for generating clients. If it conflicts with the pages in this tab, the spec is not the source of truth; the live contract is the server.
+
+## Where to start
+
+<Columns cols={2}>
+  <Card title="Generate video or image" icon="sparkles" href="/en/api-reference/generate">
+    The main endpoint: prompt, model, parameters, references.
+  </Card>
+  <Card title="Fetch a result" icon="clock" href="/en/api-reference/get-job">
+    Poll the status and download the media.
+  </Card>
+  <Card title="Upload a reference" icon="upload" href="/en/api-reference/upload">
+    Images, video, or audio as source material.
+  </Card>
+  <Card title="Read your balance" icon="coins" href="/en/api-reference/credits">
+    Credits, Unlimited period, and the quota left today.
+  </Card>
+</Columns>

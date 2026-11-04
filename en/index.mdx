@@ -1,0 +1,98 @@
+---
+title: "Vidgen API"
+description: "Generate AI video and images with a single API key. One endpoint to create a job, one endpoint to fetch the result."
+keywords: ["Vidgen API", "AI video API", "generate video API", "text to video api", "API documentation"]
+---
+
+The Vidgen API is the HTTP interface for the Vidgen video and image generation engine. With one API key you can create jobs, send reference images or video, and fetch the finished result — without opening the dashboard.
+
+<Columns cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/en/quickstart">
+    Send your first request in 3 minutes.
+  </Card>
+  <Card title="Authentication" icon="key" href="/en/authentication">
+    How to use `Authorization: Bearer` and `x-api-key`.
+  </Card>
+  <Card title="API reference" icon="square-terminal" href="/en/api-reference/overview">
+    Every endpoint, parameter, and response shape.
+  </Card>
+  <Card title="Usage limits" icon="gauge" href="/en/concepts/concurrency-limits">
+    Concurrency, daily quotas, and job lifetime.
+  </Card>
+</Columns>
+
+## How it works
+
+The Vidgen API is **asynchronous**. A `POST /api/v1/generate` request is answered immediately with `202 Accepted` containing `job.id`, and you then fetch the result with `GET /api/v1/jobs/{id}` until the status is `succeeded`.
+
+<Steps>
+  <Step title="Send a prompt + model">
+    Pick a model from the catalog (for example `seedance-2-5-flash`), write your prompt, and set duration/ratio/resolution in `parameters`.
+  </Step>
+  <Step title="The server queues the job">
+    Credits are deducted up front, the job enters the queue, and you receive `job.id` along with your queue position.
+  </Step>
+  <Step title="Poll until it finishes">
+    Check the status every 5 seconds. While the status is `queued` you see `queuePosition`; when it is `succeeded` you get the media URL.
+  </Step>
+  <Step title="Download the result">
+    Store the URL in your own storage. Result links have a limited lifetime, so do not rely on them as a permanent source.
+  </Step>
+</Steps>
+
+## Get started in 3 steps
+
+<Steps>
+  <Step title="Create an API key">
+    Sign in at [vidgen.id → Documentation](https://vidgen.id/docs), click **Create API Key**, and copy the value. Keys are formatted `vg_...` and are shown only once.
+  </Step>
+  <Step title="Send your first request">
+
+```bash create curl
+curl -X POST https://vidgen.id/api/v1/generate \
+  -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "seedance-2-5-flash",
+    "prompt": "Kopi susu di meja kayu, cahaya pagi menembus jendela, kamera bergerak pelan ke kanan",
+    "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" }
+  }'
+```
+
+  </Step>
+  <Step title="Fetch the result">
+
+```bash poll curl
+curl https://vidgen.id/api/v1/jobs/JOB_ID \
+  -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU"
+```
+
+  </Step>
+</Steps>
+
+## Browse the documentation
+
+<Columns cols={2}>
+  <Card title="Model catalog" icon="layers" href="/en/concepts/models">
+    Active models, their capabilities, and how to read them at runtime.
+  </Card>
+  <Card title="Credits & pricing" icon="coins" href="/en/concepts/credits">
+    How billing is calculated and when the Unlimited package charges 0 credits.
+  </Card>
+  <Card title="Reference media" icon="upload" href="/en/concepts/reference-media">
+    Size, duration, and resolution limits for reference files.
+  </Card>
+  <Card title="Idempotency" icon="shield-check" href="/en/concepts/idempotency">
+    Avoid being billed twice when you retry.
+  </Card>
+  <Card title="Node.js" icon="file-code" href="/en/guides/nodejs">
+    A complete client with no extra dependencies.
+  </Card>
+  <Card title="Python" icon="file-code" href="/en/guides/python">
+    The `generate()` and `wait_for_job()` helpers.
+  </Card>
+</Columns>
+
+<Tip>
+  Need help? Send a support message through the Vidgen dashboard, or read the [error codes](/en/troubleshooting/errors) first.
+</Tip>

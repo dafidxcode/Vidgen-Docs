@@ -1,0 +1,76 @@
+---
+title: "Introduction"
+description: "What the Vidgen API is, what it supports, and the lifecycle of a job."
+keywords: ["vidgen api introduction", "async job", "text to video api indonesia"]
+---
+
+The Vidgen API is the official HTTP API for the Vidgen generation engine. Everything you can do in the dashboard — creating video from text, animating an image, transferring motion from a reference video — is available through the same endpoints, with the same credits and the same queue.
+
+## What is supported
+
+| Capability | API status |
+| --- | --- |
+| Video from text (`t2v`) | Fully supported |
+| Video from an image (`i2v`) | Supported — send a reference image |
+| Motion control / motion transfer | Supported — requires a reference video |
+| Images (text-to-image, image edit) | Fully supported |
+| Audio / music | Only available in the dashboard so far, not yet through an API key |
+| Transcription, watermark removal, face-mask, storyboard | Dashboard only |
+
+The model list can change without notice because the catalog is controlled from the server. Always read the [runtime catalog](/en/api-reference/models) before you show model choices in your product.
+
+## Job lifecycle
+
+```text theme={null}
+POST /api/v1/generate
+        │
+        ├─ 401/402/429 ...      (rejected, no credits were used)
+        │
+        └─ 202 Accepted, status "queued"
+                    │
+              queue   ├─ "dispatching"
+                      ├─ "processing"
+                      ├─ "succeeded"  → result.url available
+                      └─ "failed"     → credits refunded automatically
+```
+
+A job never finishes inside a single request. Do not hold an HTTP connection open waiting for the result; poll `GET /api/v1/jobs/{id}` instead.
+
+## The job object
+
+The `job` object in the response is the same on both endpoints:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | string | The id you use for polling. |
+| `status` | string | `queued` \| `dispatching` \| `processing` \| `succeeded` \| `failed` \| `cancelled`. |
+| `model` | string | The model id that was used. |
+| `category` | string | `Video` \| `Image` \| `Audio`. |
+| `prompt` | string | The prompt that was stored after content filtering. |
+| `queuePosition` | number \| null | Queue position, only while `queued`. |
+| `result` | object \| null | `{ url, duration, width, height }` only when `succeeded`. |
+| `errorMessage` | string \| null | A user-readable message when the job is `failed`. |
+| `creditsCharged` | number | Credits deducted (0 when the Unlimited quota covered the job). |
+| `createdAt`, `updatedAt` | ISO-8601 string | Server time (UTC). |
+
+## Rules that apply across the API
+
+- Authentication uses an API key, not session cookies. See [Authentication](/en/authentication).
+- Base URL: `https://vidgen.id/api/v1`. See [Base URL](/en/api-base-url).
+- Every request and response is JSON, except `POST /api/v1/upload`, which uses `multipart/form-data`.
+- Errors are always answered with a `{ "error": "..." }` body and a meaningful HTTP status code. Some errors add diagnostic fields (`requiredCredits`, `maxConcurrent`, `dailyVideosUsed`).
+- Credits are deducted up front and refunded if the job fails.
+- The maximum job lifetime is 2 hours. A job that has not finished past that limit is marked `failed` and its credits are refunded.
+
+## Quick limits
+
+| Limit | Value |
+| --- | --- |
+| Concurrent active jobs (Unlimited accounts) | 2 |
+| Successful videos per day | 50, reset at 00:00 WIB |
+| Media uploads | 60 files / hour |
+| File size | 100 MB |
+| Server queue depth | 100 jobs |
+| Result link lifetime | 24 hours |
+
+Details are in [Concurrency & limits](/en/concepts/concurrency-limits).

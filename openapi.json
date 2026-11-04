@@ -1,0 +1,655 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Vidgen API",
+    "version": "1.0.0",
+    "description": "Generate video dan gambar AI lewat satu API key. Kontrak resmi dijelaskan di halaman dokumentasi Vidgen; spec ini adalah artefak bantu untuk menghasilkan klien."
+  },
+  "servers": [
+    {
+      "url": "https://vidgen.id",
+      "description": "Produksi"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "apiKeyHeader": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Generate",
+      "description": "Buat job dan ambil hasilnya."
+    },
+    {
+      "name": "Media",
+      "description": "Unggah bahan referensi."
+    },
+    {
+      "name": "Catalog",
+      "description": "Katalog model publik."
+    },
+    {
+      "name": "Account",
+      "description": "Saldo dan batas pemakaian."
+    }
+  ],
+  "paths": {
+    "/api/v1/generate": {
+      "post": {
+        "tags": ["Generate"],
+        "operationId": "createGenerationJob",
+        "summary": "Buat job generate",
+        "description": "Memotong kredit di awal dan membalas `202` sebelum hasil jadi. Polling `GET /api/v1/jobs/{id}` untuk mendapat media.",
+        "security": [
+          { "bearerAuth": [] },
+          { "apiKeyHeader": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateRequest"
+              },
+              "examples": {
+                "video-dari-teks": {
+                  "summary": "Video 5 detik dari teks",
+                  "value": {
+                    "model": "seedance-2-5-flash",
+                    "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
+                    "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" },
+                    "idempotencyKey": "order-4711-a39f2c7b"
+                  }
+                },
+                "video-dari-gambar": {
+                  "summary": "Menganimasikan gambar karakter",
+                  "value": {
+                    "model": "seedance-2-5-flash",
+                    "prompt": "karakter ini melambaikan tangan ke kamera",
+                    "references": [
+                      {
+                        "id": "ref_api_1762261900_karakter.png",
+                        "url": "/api/media/ref_api_1762261900_karakter.png",
+                        "file_url": "/api/media/ref_api_1762261900_karakter.png",
+                        "type": "image",
+                        "filename": "ref_api_1762261900_karakter.png"
+                      }
+                    ],
+                    "parameters": { "duration": "5", "resolution": "720p" }
+                  }
+                },
+                "motion-control": {
+                  "summary": "Transfer gerakan, prompt boleh kosong",
+                  "value": {
+                    "model": "kling-mc-3-0-pro",
+                    "prompt": "",
+                    "references": [
+                      { "id": "ref_api_1762261900_gerakan.mp4", "type": "video" },
+                      { "id": "ref_api_1762261901_karakter.png", "type": "image" }
+                    ],
+                    "parameters": { "orientation": "video" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Job baru masuk antrean.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "job"],
+                  "properties": {
+                    "success": { "type": "boolean", "const": true },
+                    "job": { "$ref": "#/components/schemas/JobSummary" },
+                    "queue": { "$ref": "#/components/schemas/QueueInfo" }
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "`idempotencyKey` sudah pernah dipakai; job lama dikembalikan apa adanya.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "job", "idempotent"],
+                  "properties": {
+                    "success": { "type": "boolean", "const": true },
+                    "job": { "$ref": "#/components/schemas/JobSummary" },
+                    "queue": { "$ref": "#/components/schemas/QueueInfo" },
+                    "idempotent": { "type": "boolean", "const": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "402": {
+            "description": "Kredit tidak mencukupi. Tidak ada job yang dibuat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "requiredCredits", "currentCredits"],
+                  "properties": {
+                    "error": { "type": "string" },
+                    "requiredCredits": { "type": "number" },
+                    "currentCredits": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Model dikenal tetapi sedang dinonaktifkan.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas konkurensi, kuota video harian, atau antrean server penuh.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": { "type": "string" },
+                    "maxConcurrent": { "type": "number" },
+                    "activeJobs": { "type": "number" },
+                    "dailyLimitReached": { "type": "boolean" },
+                    "dailyVideosUsed": { "type": "number" },
+                    "resetsAt": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "get": {
+        "tags": ["Generate"],
+        "operationId": "getGenerationJob",
+        "summary": "Ambil status job",
+        "description": "Baca kondisi terbaru sebuah job. Hanya pemiliknya yang bisa membacanya.",
+        "security": [
+          { "bearerAuth": [] },
+          { "apiKeyHeader": [] }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "`job.id` dari respons generate.",
+            "schema": { "type": "string" },
+            "example": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status terbaru. `result` hanya terisi ketika `status` bernilai `succeeded`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "job"],
+                  "properties": {
+                    "success": { "type": "boolean", "const": true },
+                    "job": { "$ref": "#/components/schemas/JobDetail" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Id job kosong.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Job bukan milik akun pemakai key ini.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Job tidak ditemukan.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/upload": {
+      "post": {
+        "tags": ["Media"],
+        "operationId": "uploadReferenceAsset",
+        "summary": "Unggah media referensi",
+        "description": "Menyimpan satu berkas gambar/video/audio dan mengembalikan objek aset untuk field `references`. Maksimal 100 MB, 60 berkas per jam.",
+        "security": [
+          { "bearerAuth": [] },
+          { "apiKeyHeader": [] }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JPG/PNG/WebP, MP4/WebM, atau MP3/WAV."
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "Id model target. Menentukan aturan durasi dan cara penyimpanan.",
+                    "example": "kling-mc-3-0-pro"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aset tersimpan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "asset"],
+                  "properties": {
+                    "success": { "type": "boolean", "const": true },
+                    "asset": { "$ref": "#/components/schemas/Asset" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "413": {
+            "description": "Berkas melebihi 100 MB.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "429": {
+            "description": "Batas 60 berkas per jam tercapai.",
+            "headers": {
+              "Retry-After": {
+                "description": "Detik sebelum percobaan berikutnya.",
+                "schema": { "type": "integer" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models": {
+      "get": {
+        "tags": ["Catalog"],
+        "operationId": "listModels",
+        "summary": "Daftar model aktif",
+        "description": "Katalog publik: model aktif, harga kredit, dan kapabilitas yang menentukan parameter valid. Tidak butuh API key.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Tiga keranjang model.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "models"],
+                  "properties": {
+                    "success": { "type": "boolean", "const": true },
+                    "models": {
+                      "type": "object",
+                      "required": ["video", "image", "audio"],
+                      "properties": {
+                        "video": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Model" }
+                        },
+                        "image": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Model" }
+                        },
+                        "audio": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Model" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Katalog gagal dimuat.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/user/credits": {
+      "get": {
+        "tags": ["Account"],
+        "operationId": "getAccountCredits",
+        "summary": "Saldo dan batas akun",
+        "description": "Kredit, status Unlimited, job aktif, dan sisa kuota video harian.",
+        "security": [
+          { "bearerAuth": [] },
+          { "apiKeyHeader": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kondisi akun saat ini.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "user", "unlimited", "limits"],
+                  "properties": {
+                    "success": { "type": "boolean", "const": true },
+                    "user": { "$ref": "#/components/schemas/AccountUser" },
+                    "unlimited": { "$ref": "#/components/schemas/UnlimitedStatus" },
+                    "limits": { "$ref": "#/components/schemas/AccountLimits" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key Vidgen dikirim sebagai `Authorization: Bearer vg_...`."
+      },
+      "apiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "Alternatif bagi yang tidak bisa mengirim header Authorization."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Pesan yang layak dibaca manusia. Detail sistem internal tidak pernah ikut terkirim."
+          }
+        }
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": ["queued", "dispatching", "processing", "succeeded", "failed", "cancelled"]
+      },
+      "MediaCategory": {
+        "type": "string",
+        "enum": ["Video", "Image", "Audio"]
+      },
+      "GenerateRequest": {
+        "type": "object",
+        "required": ["model"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Id dari `GET /api/v1/models`. Titik dan tanda hubung diperlakukan sama.",
+            "example": "seedance-2-5-flash"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Wajib kecuali model motion control. Disaring lebih dulu sebelum diteruskan.",
+            "maxLength": 2500
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Hanya kunci dikenal yang diproses; sisanya diabaikan tanpa error.",
+            "properties": {
+              "duration": { "type": "string", "description": "Detik, akhiran `s` boleh. Diabaikan pada motion control." },
+              "resolution": { "type": "string", "description": "Contoh `720p`, `1080p`, `1K`, `2K`, `4K`." },
+              "ratio": { "type": "string", "description": "`16:9`, `9:16`, `1:1`, `4:3`, `3:4`, `auto`. Alias: `aspect_ratio`." },
+              "quality": { "type": "string", "description": "Hanya jika model punya `capabilities.qualities`." },
+              "background": { "type": "string", "description": "Hanya jika model punya `capabilities.backgrounds`." },
+              "output_format": { "type": "string", "description": "Alias: `format`." },
+              "negative_prompt": { "type": "string", "description": "Hanya jika `supportsNegativePrompt`." },
+              "seed": { "type": "string", "description": "Hanya jika `supportsSeed`." },
+              "orientation": { "type": "string", "enum": ["image", "video"], "description": "Khusus motion control." }
+            },
+            "additionalProperties": true
+          },
+          "references": {
+            "type": "array",
+            "description": "Objek aset hasil upload, atau objek berisi `url` publik yang akan diunduh server.",
+            "items": { "$ref": "#/components/schemas/ReferenceInput" }
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Di bawah 8 karakter diabaikan dan server membuat key sendiri."
+          }
+        }
+      },
+      "ReferenceInput": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Id aset dari `POST /api/v1/upload`." },
+          "url": { "type": "string", "description": "Lokasi aset, atau URL publik yang akan diunduh." },
+          "file_url": { "type": "string" },
+          "type": { "type": "string", "enum": ["image", "video", "audio"] },
+          "filename": { "type": "string", "description": "Nama berkas di penyimpanan server." }
+        }
+      },
+      "Asset": {
+        "type": "object",
+        "required": ["id", "url", "type", "filename"],
+        "properties": {
+          "id": { "type": "string", "example": "ref_api_1762261900_gerakan.mp4" },
+          "url": { "type": "string", "example": "/api/media/ref_api_1762261900_gerakan.mp4" },
+          "file_url": { "type": "string" },
+          "type": { "type": "string", "enum": ["image", "video", "audio"] },
+          "filename": { "type": "string", "description": "Nama di penyimpanan server, bukan nama yang dikirim." },
+          "duration": { "type": "number", "description": "Detik untuk video/audio; kunci tidak ada bila panjang tidak terdeteksi." },
+          "width": { "type": "number" },
+          "height": { "type": "number" }
+        }
+      },
+      "JobSummary": {
+        "type": "object",
+        "required": ["id", "status", "model", "creditsCharged"],
+        "properties": {
+          "id": { "type": "string", "example": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b" },
+          "status": { "$ref": "#/components/schemas/JobStatus" },
+          "model": { "type": "string" },
+          "category": { "$ref": "#/components/schemas/MediaCategory" },
+          "prompt": { "type": "string" },
+          "result": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/JobResult" },
+              { "type": "null" }
+            ]
+          },
+          "creditsCharged": { "type": "number", "description": "0 bila kuota Unlimited yang membiayai atau job gagal." },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "JobDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/JobSummary" },
+          {
+            "type": "object",
+            "properties": {
+              "queuePosition": {
+                "type": ["integer", "null"],
+                "description": "Hanya bernilai saat status `queued`."
+              },
+              "errorMessage": {
+                "type": ["string", "null"],
+                "description": "Penjelasan kegagalan, sudah disaring, berbahasa Inggris."
+              },
+              "updatedAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        ]
+      },
+      "JobResult": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "description": "Tautan media pada origin Vidgen. Bisa kedaluwarsa dalam 24 jam." },
+          "duration": { "type": ["number", "null"] },
+          "width": { "type": ["number", "null"] },
+          "height": { "type": ["number", "null"] }
+        }
+      },
+      "QueueInfo": {
+        "type": "object",
+        "properties": {
+          "position": { "type": "integer" },
+          "status": { "$ref": "#/components/schemas/JobStatus" }
+        }
+      },
+      "Model": {
+        "type": "object",
+        "required": ["id", "label", "category", "mode", "creditsDefault", "capabilities"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "category": { "$ref": "#/components/schemas/MediaCategory" },
+          "mode": { "type": "string", "enum": ["video", "image", "audio"] },
+          "creditsDefault": { "type": "number" },
+          "priceMatrix": {
+            "type": "object",
+            "description": "Override per kunci: durasi, resolusi, `res:duration`, atau `quality:resolution`.",
+            "additionalProperties": { "type": "number" }
+          },
+          "capabilities": {
+            "type": "object",
+            "properties": {
+              "durations": { "type": "array", "items": { "type": "string" } },
+              "ratios": { "type": "array", "items": { "type": "string" } },
+              "resolutions": { "type": "array", "items": { "type": "string" } },
+              "maxReferenceImages": { "type": "integer" },
+              "maxReferenceVideos": { "type": "integer" },
+              "maxReferenceAudios": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "AccountUser": {
+        "type": "object",
+        "required": ["uid", "credits"],
+        "properties": {
+          "uid": { "type": "string" },
+          "email": { "type": "string" },
+          "credits": { "type": "number", "description": "Bisa pecahan, misal 1.5." }
+        }
+      },
+      "UnlimitedStatus": {
+        "type": "object",
+        "required": ["active"],
+        "properties": {
+          "active": { "type": "boolean" },
+          "daysLeft": { "type": "integer" },
+          "expiresAt": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "AccountLimits": {
+        "type": "object",
+        "required": ["maxConcurrentJobs", "currentActiveJobs", "dailyVideoLimit"],
+        "properties": {
+          "maxConcurrentJobs": { "type": "integer", "example": 2 },
+          "currentActiveJobs": { "type": "integer" },
+          "dailyVideoLimit": { "type": "integer", "example": 50 },
+          "dailyVideosGenerated": { "type": "integer" },
+          "dailyVideosRemaining": { "type": "integer" },
+          "resetsAt": { "type": "string", "example": "00:00 WIB" }
+        }
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Permintaan tidak lolos validasi. Tidak ada kredit yang terpotong.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["error"],
+              "properties": {
+                "error": { "type": "string" },
+                "fields": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Key tidak ada, salah format, atau dicabut. Jangan diulang sebelum kredensial diperbaiki.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Pemeliharaan atau layanan internal tidak bisa diakses. Tunda dengan backoff dan pertahankan `idempotencyKey`.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      }
+    }
+  }
+}

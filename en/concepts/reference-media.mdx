@@ -1,0 +1,110 @@
+---
+title: "Reference media"
+description: "Send images, video, or audio as references — through the upload endpoint or a public URL — and understand the technical limits."
+keywords: ["image to video", "reference video", "upload api", "reference duration limits"]
+---
+
+References go into the `references` field of the `POST /api/v1/generate` body. There are two ways to provide them.
+
+## Method 1 — upload first (recommended)
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/upload \
+  -H "Authorization: Bearer vg_KEY_KAMU" \
+  -F "file=@karakter.png" \
+  -F "model=seedance-2-5-flash"
+```
+
+```json theme={null}
+{
+  "success": true,
+  "asset": {
+    "id": "ref_api_1762261900_karakter.png",
+    "url": "/api/media/ref_api_1762261900_karakter.png",
+    "file_url": "/api/media/ref_api_1762261900_karakter.png",
+    "type": "image",
+    "filename": "ref_api_1762261900_karakter.png",
+    "width": 1024,
+    "height": 1024
+  }
+}
+```
+
+Then paste the whole `asset` object into `references`:
+
+```json theme={null}
+{
+  "model": "seedance-2-5-flash",
+  "prompt": "karakter ini berlari menembus hutan pinus",
+  "references": [{ "id": "ref_api_1762261900_karakter.png", "type": "image", "url": "/api/media/..." }]
+}
+```
+
+The `model` field at upload time **is not required but it matters**: the server uses the target model to decide the duration rules (for example the extra leeway for motion control) and how the file is stored. If you omit it, the file is handled with the general rules.
+
+<Warning>
+  The `filename` in the response is the name in server storage, not the name of the file you sent. Keep `id` and `url` exactly as returned; do not build paths yourself.
+</Warning>
+
+## Method 2 — public URL
+
+Send an object containing `url` and let the server download it:
+
+```json theme={null}
+"references": [
+  { "url": "https://cdn.tokokamu.com/images/produk.png", "type": "image" }
+]
+```
+
+- The server uses a 20 second timeout. Slow URLs, or ones that protect themselves against bots, fail with `400`.
+- `type` may be omitted; the server detects it from the file contents (not from the extension). Stating `type` explicitly makes the behavior easier to predict.
+- The downloaded file is kept in Vidgen's temporary storage, so you do not need to upload it a second time.
+
+<Info>
+  For URLs that need private headers (signed URLs, tokens), make sure the link is still valid when the request is made. The server sends no headers at all while downloading.
+</Info>
+
+## Limits enforced by the server
+
+| Aspect | Limit |
+| --- | --- |
+| File size | 100 MB |
+| Detected formats | Images JPG/PNG/WebP, video MP4/WebM, audio MP3/WAV |
+| Number of files | 60 uploads per hour per account (`429` + `Retry-After` header) |
+| Image too small | Shortest side below 100 px is rejected |
+| Image too large | If the shortest side < 300 px, the longest side > 1920 px, the total > 4 million px, or > 3 MB → the server downscales automatically to a longest side of 1920 px |
+| Video/audio duration (general) | 2–15 seconds |
+| Video > 15 seconds (general) | Automatically trimmed to about 14.5 seconds |
+| Motion control reference video duration | 3–30 seconds; maximum 10 seconds when orientation follows the image |
+| Motion control reference video resolution | Minimum 300,000 total pixels and a shortest side of at least 360 px |
+| Motion control with unreadable duration | Rejected — export as MP4, not WebM |
+
+## Maximum counts per model
+
+| Model category | Images | Video | Audio |
+| --- | --- | --- | --- |
+| Video | 9 | 1 | 1 |
+| Image | 10 | 0 | 0 |
+
+These are defaults; each model can declare its own limits through `capabilities.maxReferenceImages`, `maxReferenceVideos`, and `maxReferenceAudios` in the catalog. Read them from there, not from this table.
+
+<Note>
+  Sending video or audio to an image model is always rejected with `400`, whatever the count.
+</Note>
+
+## Practices that prevent failures
+
+<AccordionGroup>
+  <Accordion title="Upload an asset once, reuse it many times">
+    An uploaded asset can be used in many jobs as long as the file still exists. While you keep using the same reference, do not upload it again — the 60 files/hour limit runs out fast if every job resends an identical image.
+  </Accordion>
+  <Accordion title="Match the reference ratio to the output ratio">
+    If the reference image is 1:1 but you request `ratio: "16:9"`, the model fills in the extra space. The most stable results come from references whose ratio already resembles the requested output.
+  </Accordion>
+  <Accordion title="For face-lock, use a front-facing face">
+    Photos with a turned, covered, or poorly lit face are the most common cause of results that do not resemble the subject, or of jobs that fail at the alignment stage.
+  </Accordion>
+  <Accordion title="Do not send video with burn-in subtitles">
+    Text burned into the reference video tends to be reproduced by the model. Clean it up first, then upload.
+  </Accordion>
+</AccordionGroup>

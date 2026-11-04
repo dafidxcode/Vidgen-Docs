@@ -1,0 +1,99 @@
+---
+title: "Katalog model"
+description: "Cara membaca daftar model Vidgen dari runtime, apa arti setiap kapabilitas, dan bagaimana id model dicocokkan."
+keywords: ["model vidgen", "katalog model", "seedance", "kling", "parameter yang didukung"]
+---
+
+Model Vidgen dikelola dari server dan bisa berubah kapan saja — model baru masuk, model lama dipensiunkan, harga kredit disesuaikan. Karena itu **jangan hardcode daftar model** di produkmu. Ambil dari runtime:
+
+```bash theme={null}
+curl https://vidgen.id/api/v1/models
+```
+
+Endpoint ini publik (tanpa API key) dan mengembalikan tiga keranjang: `video`, `image`, `audio`. Hanya model aktif yang muncul.
+
+## Bentuk satu entri
+
+```json theme={null}
+{
+  "id": "seedance-2-5-flash",
+  "label": "Seedance 2.5 Flash",
+  "category": "Video",
+  "mode": "video",
+  "creditsDefault": 3,
+  "priceMatrix": { "20": 3 },
+  "capabilities": {
+    "durations": ["20"],
+    "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+    "resolutions": ["720p"],
+    "maxReferenceImages": 9,
+    "maxReferenceVideos": 1,
+    "maxReferenceAudios": 1
+  }
+}
+```
+
+| Field | Arti |
+| --- | --- |
+| `id` | Nilai yang kamu kirim di body `model`. |
+| `label` | Nama tampilan. Bisa berubah; jangan jadikan kunci logika. |
+| `category` | `Video` \| `Image` \| `Audio`. |
+| `mode` | Sama dengan `category` tapi huruf kecil; dipakai untuk memilih tab parameter. |
+| `creditsDefault` | Harga dasar dalam kredit bila tidak ada override yang cocok. |
+| `priceMatrix` | Override per kunci: `"15"`, `"720p"`, `"720p:15"`, atau `"low:2K"` (kualitas:resolusi). |
+| `capabilities.durations` | Nilai valid untuk `parameters.duration`. |
+| `capabilities.ratios` | Nilai valid untuk `parameters.ratio`. `auto` selalu diterima dan tidak divalidasi. |
+| `capabilities.resolutions` | Nilai valid untuk `parameters.resolution`. |
+| `capabilities.maxReferenceImages` / `Videos` / `Audios` | Berapa banyak referensi jenis itu yang boleh dikirim. |
+
+Beberapa model juga mengembalikan `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, atau `supportsSeed`. Kalau kuncinya tidak ada, parameter tersebut diabaikan server — tidak error, tidak berpengaruh.
+
+## Parameter yang dimengerti API
+
+Hanya kunci berikut yang dibaca dari objek `parameters`:
+
+| Kunci | Berlaku untuk | Catatan |
+| --- | --- | --- |
+| `duration` | Video | Boleh ditulis `"5"` atau `"5s"`; akhiran `s` dibuang. |
+| `resolution` | Video, Gambar | Tervalidasi terhadap `capabilities.resolutions`. |
+| `ratio` | Video, Gambar | Alias `aspect_ratio` juga diterima. |
+| `quality` | Gambar | Hanya jika model punya `qualities`. |
+| `background` | Gambar | Hanya jika model punya `backgrounds`. |
+| `output_format` (atau `format`) | Gambar, Audio | Hanya jika model punya `outputFormats`. |
+| `negative_prompt` | Sebagian model | Hanya jika `supportsNegativePrompt`. |
+| `seed` | Sebagian model | Hanya jika `supportsSeed`. |
+| `orientation` | Motion control saja | `image` atau `video`. |
+
+Kunci lain yang kamu kirim (misalnya `style`, `title`, `camera`) **tidak** diproses dan tidak disimpan sebagai error. Validasi dilakukan sebelum job dibuat, jadi typo pada `parameters` diam-diam.
+
+<Note>
+  Kalau kamu butuh parameter yang belum ada, kirim permintaan lewat dukungan. Menambah kunci baru tidak akan merusak integrasi lama.
+</Note>
+
+## Pencocokan id
+
+`model` dicocokkan dengan kolom id di katalog, dan ejaan dengan titik serta tanda hubung diperlakukan sama:
+
+```text theme={null}
+seedance-2-5-flash  ==  seedance.2.5.flash
+```
+
+Beberapa id punya alias internal (misalnya `vidgen-1.0`). Rekomendasinya tetap: pakai `id` apa adanya dari respons `GET /api/v1/models`.
+
+Model yang sedang dimatikan **tetap ada** di database supaya riwayat lama punya label, tapi tidak muncul di katalog dan tidak bisa dijalankan. Permintaan ke model nonaktif dijawab `409`.
+
+## Model motion control
+
+Model dengan kemampuan transfer gerakan punya aturan sendiri:
+
+- `prompt` boleh kosong — gerakannya datang dari video referensi.
+- Durasi video referensi menentukan durasi (dan harga) keluaran, bukan angka yang kamu kirim di `parameters.duration`.
+- Batas durasi referensi lebih longgar daripada model biasa; lihat [Media referensi](/concepts/reference-media).
+
+<Note>
+  Flag `motion` tidak muncul di `GET /api/v1/models`. Model motion control dikenali dari namanya di dashboard; kalau kamu perlu memfilter secara programatik, tanyakan lewat dukungan sebelum hardcode daftar id.
+</Note>
+
+## Audio
+
+Katalog menyertakan keranjang `audio`, tapi generate audio lewat API key **belum dibuka**. Kirim `mode: "audio"` hari ini akan membuat job yang gagal di tengah jalan dengan pengembalian kredit. Generate audio masih lewat dashboard.

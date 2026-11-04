@@ -1,0 +1,190 @@
+---
+title: "Saldo & batas akun"
+description: "Cek kredit, status paket Unlimited, job aktif, dan sisa kuota video harian satu akun."
+keywords: ["GET /api/v1/user/credits", "saldo kredit", "unlimited", "sisa kuota harian"]
+api: 'GET /api/v1/user/credits'
+---
+
+Satu panggilan ringan untuk mengetahui apakah akunmu siap mengirim permintaan berikutnya. Cocok dipakai sebagai gerbang sebelum batch.
+
+### Authorizations
+
+<ParamField path="Authorization" type="string" required>
+  API key berformat `Bearer vg_...`.
+</ParamField>
+
+<RequestExample>
+
+```bash cURL theme={null}
+curl https://vidgen.id/api/v1/user/credits \
+  -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
+```
+
+```js Node.js theme={null}
+const info = await (
+  await fetch("https://vidgen.id/api/v1/user/credits", {
+    headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
+  })
+).json();
+
+if (info.user.credits < 10 || info.limits.dailyVideosRemaining === 0) {
+  console.warn("tidak layak mengirim batch");
+}
+```
+
+```python Python theme={null}
+info = requests.get(
+    "https://vidgen.id/api/v1/user/credits",
+    headers={"Authorization": f"Bearer {api_key}"},
+).json()
+
+print(info["user"]["credits"], info["unlimited"], info["limits"])
+```
+
+</RequestExample>
+
+### Responses
+
+<ResponseField name="success" type="boolean" required>
+  `true` saat data terbaca.
+</ResponseField>
+
+<ResponseField name="user" type="object" required>
+  <Expandable title="isi user" defaultOpen>
+    <ResponseField name="uid" type="string" required>
+      Id internal akun. Stabil dan aman dipakai sebagai kunci basis data kamu.
+    </ResponseField>
+    <ResponseField name="email" type="string">
+      Email akun Google pemilik key.
+    </ResponseField>
+    <ResponseField name="credits" type="number" required>
+      Saldo kredit saat ini. Bisa berupa pecahan (misal `1.5`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="unlimited" type="object" required>
+  Status paket Unlimited. Tidak ada kredit yang dipotong untuk model yang memenuhi syarat selama `active` bernilai `true`.
+
+  <Expandable title="isi unlimited" defaultOpen>
+    <ResponseField name="active" type="boolean" required>
+      `true` bila kuota masih berlaku.
+    </ResponseField>
+    <ResponseField name="daysLeft" type="number">
+      Sisa hari. Pembelian berulang menumpuk, jadi nilainya bisa lebih dari durasi satu paket.
+    </ResponseField>
+    <ResponseField name="expiresAt" type="string (ISO 8601) | null">
+      Waktu kedaluwarsa; `null` bila tidak ada paket aktif.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="limits" type="object" required>
+  Batas yang akan menentukan apakah permintaan berikutnya diterima.
+
+  <Expandable title="isi limits" defaultOpen>
+    <ResponseField name="maxConcurrentJobs" type="number" required>
+      Proses bersamaan yang diizinkan untuk pemakaian kuota Unlimited. Saat ini `2`.
+    </ResponseField>
+    <ResponseField name="currentActiveJobs" type="number" required>
+      Job milik akunmu yang masih `queued`, `dispatching`, atau `processing`.
+    </ResponseField>
+    <ResponseField name="dailyVideoLimit" type="number" required>
+      Batas video sukses per hari. Saat ini `50`.
+    </ResponseField>
+    <ResponseField name="dailyVideosGenerated" type="number" required>
+      Sudah terpakai hari ini. Job gagal tidak dihitung.
+    </ResponseField>
+    <ResponseField name="dailyVideosRemaining" type="number" required>
+      Sisa hari ini, minimal `0`.
+    </ResponseField>
+    <ResponseField name="resetsAt" type="string" required>
+      `"00:00 WIB"` — reset memakai waktu Indonesia Barat, bukan UTC.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+
+```json 200 theme={null}
+{
+  "success": true,
+  "user": {
+    "uid": "0f7c9a1e-42b3-4c9a-9d0f-8a3e2b1c5d64",
+    "email": "saya@tokokamu.com",
+    "credits": 128
+  },
+  "unlimited": {
+    "active": true,
+    "daysLeft": 1,
+    "expiresAt": "2026-11-05T03:41:12.000Z"
+  },
+  "limits": {
+    "maxConcurrentJobs": 2,
+    "currentActiveJobs": 1,
+    "dailyVideoLimit": 50,
+    "dailyVideosGenerated": 12,
+    "dailyVideosRemaining": 38,
+    "resetsAt": "00:00 WIB"
+  }
+}
+```
+
+```json 401 theme={null}
+{ "error": "API Key tidak valid atau telah dicabut." }
+```
+
+```json 503 theme={null}
+{ "error": "Vidgen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara." }
+```
+
+</ResponseExample>
+
+## Pola pakai yang lazim
+
+<Tabs>
+  <Tab title="Gerbang sebelum batch">
+
+```js theme={null}
+async function canSubmit(model, parameters) {
+  const [{ limits }, models] = await Promise.all([vidgen.credits(), vidgen.models()]);
+  const m = models.video.find((x) => x.id === model);
+  const harga = perkirakanHarga(m, parameters);
+
+  return (
+    limits.dailyVideosRemaining > 0 &&
+    limits.currentActiveJobs < limits.maxConcurrentJobs &&
+    (await vidgen.credits()).user.credits >= harga
+  );
+}
+```
+
+  </Tab>
+  <Tab title="Alert saldo menipis">
+
+```js theme={null}
+// jalankan tiap jam dari cron
+const { user, unlimited } = await vidgen.credits();
+
+if (!unlimited.active && user.credits < 20) {
+  await notifyOwner(`Sisa kredit ${user.credits}. Beli lagi di https://vidgen.id/billing`);
+}
+```
+
+  </Tab>
+  <Tab title="Pantau kuota harian">
+
+```js theme={null}
+const { limits } = await vidgen.credits();
+
+if (limits.dailyVideosRemaining <= 5) {
+  scheduler.pauseNewVideoJobsUntil(nextWibMidnight());
+}
+```
+
+  </Tab>
+</Tabs>
+
+<Warning>
+  Angka `maxConcurrentJobs` hanya menentukan penolakan ketika permintaanmu dibiayai kuota Unlimited. Pemakaian per kredit bisa memiliki lebih dari dua job aktif, tetapi akan mengantre lebih lama.
+</Warning>
