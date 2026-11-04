@@ -92,11 +92,6 @@
       "destination": "/api-reference/overview"
     },
     {
-      "source": "/index",
-      "destination": "https://docs.vidgen.id/",
-      "permanent": true
-    },
-    {
       "source": "/en/index",
       "destination": "/en",
       "permanent": true
