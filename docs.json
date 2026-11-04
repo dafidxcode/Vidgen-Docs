@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "luma",
-  "name": "Vidgen API",
+  "name": "Vidgen API Docs",
   "description": "Dokumentasi resmi Vidgen API — generate video, gambar, dan audio lewat satu API key. Quickstart, referensi endpoint, batas pemakaian, dan pemecahan masalah.",
   "logo": {
     "light": "/logo/light.svg",
