@@ -1,10 +1,10 @@
 ---
 title: "Introduction"
-description: "What the Vidgen API is, what it supports, and the lifecycle of a job."
-keywords: ["vidgen api introduction", "async job", "text to video api indonesia"]
+description: "What the Vigen API is, what it supports, and the lifecycle of a job."
+keywords: ["vigen api introduction", "async job", "text to video api indonesia"]
 ---
 
-The Vidgen API is the official HTTP API for the Vidgen generation engine. Everything you can do in the dashboard — creating video from text, animating an image, transferring motion from a reference video — is available through the same endpoints, with the same credits and the same queue.
+The Vigen API is the official HTTP API for the Vigen generation engine. Everything you can do in the dashboard — creating video from text, animating an image, transferring motion from a reference video — is available through the same endpoints, with the same credits and the same queue.
 
 ## What is supported
 
@@ -56,7 +56,7 @@ The `job` object in the response is the same on both endpoints:
 ## Rules that apply across the API
 
 - Authentication uses an API key, not session cookies. See [Authentication](/en/authentication).
-- Base URL: `https://vidgen.id/api/v1`. See [Base URL](/en/api-base-url).
+- Base URL: `https://vigen.id/api/v1`. See [Base URL](/en/api-base-url).
 - Every request and response is JSON, except `POST /api/v1/upload`, which uses `multipart/form-data`.
 - Errors are always answered with a `{ "error": "..." }` body and a meaningful HTTP status code. Some errors add diagnostic fields (`requiredCredits`, `maxConcurrent`, `dailyVideosUsed`).
 - Credits are deducted up front and refunded if the job fails.

@@ -1,12 +1,12 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "luma",
-  "name": "Vidgen API Docs",
-  "description": "Dokumentasi resmi Vidgen API — generate video, gambar, dan audio lewat satu API key. Quickstart, referensi endpoint, batas pemakaian, dan pemecahan masalah.",
+  "name": "Vigen API Docs",
+  "description": "Dokumentasi resmi Vigen API — generate video, gambar, dan audio lewat satu API key. Quickstart, referensi endpoint, batas pemakaian, dan pemecahan masalah.",
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg",
-    "href": "https://vidgen.id"
+    "href": "https://vigen.id"
   },
   "favicon": "/favicon.svg",
   "colors": {
@@ -26,7 +26,7 @@
   },
   "api": {
     "mdx": {
-      "server": "https://vidgen.id",
+      "server": "https://vigen.id",
       "auth": {
         "method": "bearer"
       }
@@ -35,35 +35,35 @@
   "navbar": {
     "primary": {
       "type": "button",
-      "label": "Ambil API Key",
-      "href": "https://vidgen.id/docs"
+      "label": "Buat API Key",
+      "href": "https://vigen.id/account#api-keys"
     },
     "links": [
       {
         "label": "Dashboard",
-        "href": "https://vidgen.id/generator"
+        "href": "https://vigen.id/generator"
       }
     ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/vidgen"
+      "x": "https://x.com/vigen"
     },
     "links": [
       {
         "header": "Produk",
         "items": [
           {
-            "label": "Vidgen Studio",
-            "href": "https://vidgen.id/generator"
+            "label": "Vigen Studio",
+            "href": "https://vigen.id/generator"
           },
           {
             "label": "Harga",
-            "href": "https://vidgen.id/#pricing"
+            "href": "https://vigen.id/#pricing"
           },
           {
             "label": "Pustaka",
-            "href": "https://vidgen.id/library"
+            "href": "https://vigen.id/library"
           }
         ]
       },
@@ -72,15 +72,15 @@
         "items": [
           {
             "label": "Quickstart",
-            "href": "https://docs.vidgen.id/quickstart"
+            "href": "https://docs.vigen.id/quickstart"
           },
           {
             "label": "Referensi API",
-            "href": "https://docs.vidgen.id/api-reference/overview"
+            "href": "https://docs.vigen.id/api-reference/overview"
           },
           {
             "label": "Kode error",
-            "href": "https://docs.vidgen.id/troubleshooting/errors"
+            "href": "https://docs.vigen.id/troubleshooting/errors"
           }
         ]
       }
@@ -95,9 +95,9 @@
   "seo": {
     "indexing": "navigable",
     "metatags": {
-      "canonical": "https://docs.vidgen.id",
+      "canonical": "https://docs.vigen.id",
       "og:locale": "id_ID",
-      "og:site_name": "Vidgen API"
+      "og:site_name": "Vigen API"
     }
   },
   "navigation": {

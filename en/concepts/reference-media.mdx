@@ -9,7 +9,7 @@ References go into the `references` field of the `POST /api/v1/generate` body. T
 ## Method 1 — upload first (recommended)
 
 ```bash theme={null}
-curl -X POST https://vidgen.id/api/v1/upload \
+curl -X POST https://vigen.id/api/v1/upload \
   -H "Authorization: Bearer vg_KEY_KAMU" \
   -F "file=@karakter.png" \
   -F "model=seedance-2-5-flash"
@@ -58,7 +58,7 @@ Send an object containing `url` and let the server download it:
 
 - The server uses a 20 second timeout. Slow URLs, or ones that protect themselves against bots, fail with `400`.
 - `type` may be omitted; the server detects it from the file contents (not from the extension). Stating `type` explicitly makes the behavior easier to predict.
-- The downloaded file is kept in Vidgen's temporary storage, so you do not need to upload it a second time.
+- The downloaded file is kept in Vigen's temporary storage, so you do not need to upload it a second time.
 
 <Info>
   For URLs that need private headers (signed URLs, tokens), make sure the link is still valid when the request is made. The server sends no headers at all while downloading.

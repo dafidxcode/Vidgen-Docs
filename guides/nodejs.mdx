@@ -1,15 +1,15 @@
 ---
 title: "Node.js"
-description: "Klien Vidgen tanpa dependensi menggunakan fetch bawaan Node 18+."
-keywords: ["node.js", "vidgen sdk javascript", "fetch api client"]
+description: "Klien Vigen tanpa dependensi menggunakan fetch bawaan Node 18+."
+keywords: ["node.js", "vigen sdk javascript", "fetch api client"]
 ---
 
-Klien lengkap di bawah hanya memakai `fetch` bawaan — tidak ada paket tambahan, tidak ada build step. Simpan sebagai `vidgen.js` dan jalankan dengan Node 18 atau lebih baru.
+Klien lengkap di bawah hanya memakai `fetch` bawaan — tidak ada paket tambahan, tidak ada build step. Simpan sebagai `vigen.js` dan jalankan dengan Node 18 atau lebih baru.
 
-```js vidgen.js theme={null}
-const BASE = "https://vidgen.id/api/v1";
+```js vigen.js theme={null}
+const BASE = "https://vigen.id/api/v1";
 
-export class VidgenError extends Error {
+export class VigenError extends Error {
   constructor(status, body) {
     super(body?.error ?? `HTTP ${status}`);
     this.status = status;
@@ -18,7 +18,7 @@ export class VidgenError extends Error {
 }
 
 async function call(path, { method = "GET", body, form } = {}) {
-  const headers = { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` };
+  const headers = { Authorization: `Bearer ${process.env.VIGEN_API_KEY}` };
   if (body) headers["Content-Type"] = "application/json";
 
   const res = await fetch(`${BASE}${path}`, {
@@ -28,11 +28,11 @@ async function call(path, { method = "GET", body, form } = {}) {
   });
 
   const payload = await res.json().catch(() => null);
-  if (!res.ok) throw new VidgenError(res.status, payload);
+  if (!res.ok) throw new VigenError(res.status, payload);
   return payload;
 }
 
-export const vidgen = {
+export const vigen = {
   /** Buat job. Balas objek job berstatus `queued`. */
   generate: (input) => call("/generate", { method: "POST", body: input }).then((r) => r.job),
 
@@ -60,7 +60,7 @@ export async function waitForJob(id, { interval = 5_000, cap = 30_000, timeout =
   let delay = interval;
 
   for (;;) {
-    const job = await vidgen.job(id);
+    const job = await vigen.job(id);
     if (job.status === "succeeded" || job.status === "failed" || job.status === "cancelled") return job;
     if (Date.now() + delay > deadline) return job;
     await new Promise((r) => setTimeout(r, delay));
@@ -72,12 +72,12 @@ export async function waitForJob(id, { interval = 5_000, cap = 30_000, timeout =
 ## Pemakaian
 
 ```js theme={null}
-import { vidgen, waitForJob } from "./vidgen.js";
+import { vigen, waitForJob } from "./vigen.js";
 import { writeFile } from "node:fs/promises";
 
-const karakter = await vidgen.upload(await fetch("file:///./karakter.png").then((r) => r.blob()), "seedance-2-5-flash");
+const karakter = await vigen.upload(await fetch("file:///./karakter.png").then((r) => r.blob()), "seedance-2-5-flash");
 
-const job = await vidgen.generate({
+const job = await vigen.generate({
   model: "seedance-2-5-flash",
   prompt: "karakter ini melambaikan tangan ke kamera, latar studio lembut",
   references: [karakter],
@@ -99,7 +99,7 @@ if (selesai.status === "succeeded") {
 
 ```js theme={null}
 try {
-  await vidgen.generate({ model: "seedance-2-5-flash", prompt: "..." });
+  await vigen.generate({ model: "seedance-2-5-flash", prompt: "..." });
 } catch (err) {
   switch (err.status) {
     case 401: /* key salah atau dicabut — jangan diulang */ throw err;
@@ -149,5 +149,5 @@ export interface Asset {
 ```
 
 <Note>
-  Klien di atas memanggil Vidgen dari server. Dari browser, request akan diblokir CORS — taruh key dan pemanggilan ini di backend kamu.
+  Klien di atas memanggil Vigen dari server. Dari browser, request akan diblokir CORS — taruh key dan pemanggilan ini di backend kamu.
 </Note>

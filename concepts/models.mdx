@@ -1,13 +1,13 @@
 ---
 title: "Katalog model"
-description: "Cara membaca daftar model Vidgen dari runtime, apa arti setiap kapabilitas, dan bagaimana id model dicocokkan."
-keywords: ["model vidgen", "katalog model", "seedance", "kling", "parameter yang didukung"]
+description: "Cara membaca daftar model Vigen dari runtime, apa arti setiap kapabilitas, dan bagaimana id model dicocokkan."
+keywords: ["model vigen", "katalog model", "seedance", "kling", "parameter yang didukung"]
 ---
 
-Model Vidgen dikelola dari server dan bisa berubah kapan saja — model baru masuk, model lama dipensiunkan, harga kredit disesuaikan. Karena itu **jangan hardcode daftar model** di produkmu. Ambil dari runtime:
+Model Vigen dikelola dari server dan bisa berubah kapan saja — model baru masuk, model lama dipensiunkan, harga kredit disesuaikan. Karena itu **jangan hardcode daftar model** di produkmu. Ambil dari runtime:
 
 ```bash theme={null}
-curl https://vidgen.id/api/v1/models
+curl https://vigen.id/api/v1/models
 ```
 
 Endpoint ini publik (tanpa API key) dan mengembalikan tiga keranjang: `video`, `image`, `audio`. Hanya model aktif yang muncul.

@@ -1,6 +1,6 @@
 ---
 title: "Handling results"
-description: "Download, store, and archive Vidgen API output before the links expire."
+description: "Download, store, and archive Vigen API output before the links expire."
 keywords: ["result url", "media proxy", "download video", "24 hours", "store results"]
 ---
 
@@ -9,8 +9,8 @@ keywords: ["result url", "media proxy", "download video", "24 hours", "store res
 `result.url` can arrive in two forms. Both are valid and both live on the same origin as the API:
 
 ```text theme={null}
-https://vidgen.id/api/media/nama-berkas.mp4
-https://vidgen.id/api/media-proxy?token=acak-32-karakter
+https://vigen.id/api/media/nama-berkas.mp4
+https://vigen.id/api/media-proxy?token=acak-32-karakter
 ```
 
 <Warning>
@@ -25,7 +25,7 @@ Treat both forms as a black box: download as-is, do not guess the extension from
 const res = await fetch(job.result.url);
 if (!res.ok) throw new Error(`gagal mengunduh: ${res.status}`);
 
-const key = `vidgen/${job.id}.mp4`;
+const key = `vigen/${job.id}.mp4`;
 await storage.put(key, await res.arrayBuffer(), {
   contentType: res.headers.get("content-type") ?? "video/mp4",
   metadata: { jobId: job.id, model: job.model, prompt: job.prompt },
@@ -48,7 +48,7 @@ with open(f"{job['id']}.mp4", "wb") as f:
 
 ```json theme={null}
 "result": {
-  "url": "https://vidgen.id/api/media-proxy?token=...",
+  "url": "https://vigen.id/api/media-proxy?token=...",
   "duration": 5,
   "width": 1280,
   "height": 720
@@ -75,7 +75,7 @@ with open(f"{job['id']}.mp4", "wb") as f:
 
 - `errorMessage` is already scrubbed and **in English** in the API response. Translate it into your own UI language, or display it as-is.
 - Credits already deducted are refunded automatically, so `creditsCharged` on a failed job ends up at `0`. Do not build your own refund system on your side.
-- Failure messages deliberately do not mention Vidgen's internal systems. When helping a user, ask for the `job.id`, not raw logs.
+- Failure messages deliberately do not mention Vigen's internal systems. When helping a user, ask for the `job.id`, not raw logs.
 
 <Accordion title="Common error message patterns">
 
@@ -84,14 +84,14 @@ with open(f"{job['id']}.mp4", "wb") as f:
 | `...sensitive words, restricted figures...` | The prompt or a reference hit the safety filter. | Ask the user for neutral wording, then send it as a new job. |
 | `Reference video duration is not supported...` | The reference video is outside the model's range. | Use a 3-30 second video, or 10 seconds or less for image orientation. |
 | `Failed to align character with video motion...` | Face/motion detection did not match. | Replace the character photo: front-facing, well lit. |
-| `This model is temporarily unavailable on our side.` | A problem on the Vidgen side right now. | Try another model or wait 5-10 minutes. |
+| `This model is temporarily unavailable on our side.` | A problem on the Vigen side right now. | Try another model or wait 5-10 minutes. |
 | `The processing service is temporarily undergoing maintenance.` | Capacity is being repaired. | Defer the work; do not present it as a user failure. |
 
 </Accordion>
 
 ## Result policy
 
-Rights over the output, privacy, content filtering, and commercial use are governed by Vidgen's terms of service — this documentation does not replace them. Some models carry their own restrictions listed in the dashboard. Watermarks follow the package active on your account, so check the pricing page if you promise clean files to end users.
+Rights over the output, privacy, content filtering, and commercial use are governed by Vigen's terms of service — this documentation does not replace them. Some models carry their own restrictions listed in the dashboard. Watermarks follow the package active on your account, so check the pricing page if you promise clean files to end users.
 
 ## Audit trail
 

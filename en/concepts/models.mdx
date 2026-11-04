@@ -1,13 +1,13 @@
 ---
 title: "Model catalog"
-description: "How to read the Vidgen model list at runtime, what each capability means, and how model ids are matched."
-keywords: ["vidgen models", "model catalog", "seedance", "kling", "supported parameters"]
+description: "How to read the Vigen model list at runtime, what each capability means, and how model ids are matched."
+keywords: ["vigen models", "model catalog", "seedance", "kling", "supported parameters"]
 ---
 
-Vidgen models are managed from the server and can change at any time — new models are added, old ones are retired, and credit prices are adjusted. So **do not hardcode the model list** in your product. Read it at runtime:
+Vigen models are managed from the server and can change at any time — new models are added, old ones are retired, and credit prices are adjusted. So **do not hardcode the model list** in your product. Read it at runtime:
 
 ```bash theme={null}
-curl https://vidgen.id/api/v1/models
+curl https://vigen.id/api/v1/models
 ```
 
 This endpoint is public (no API key) and returns three buckets: `video`, `image`, `audio`. Only active models are returned.

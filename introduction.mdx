@@ -1,10 +1,10 @@
 ---
 title: "Pendahuluan"
-description: "Apa itu Vidgen API, apa yang didukung, dan bagaimana siklus hidup sebuah job."
-keywords: ["pengantar vidgen api", "async job", "text to video api indonesia"]
+description: "Apa itu Vigen API, apa yang didukung, dan bagaimana siklus hidup sebuah job."
+keywords: ["pengantar vigen api", "async job", "text to video api indonesia"]
 ---
 
-Vidgen API adalah HTTP API resmi untuk mesin generate Vidgen. Semua yang bisa kamu lakukan di dashboard — membuat video dari teks, menganimasikan gambar, memindahkan gerakan dari video referensi — tersedia lewat endpoint yang sama, dengan kredit dan antrean yang sama.
+Vigen API adalah HTTP API resmi untuk mesin generate Vigen. Semua yang bisa kamu lakukan di dashboard — membuat video dari teks, menganimasikan gambar, memindahkan gerakan dari video referensi — tersedia lewat endpoint yang sama, dengan kredit dan antrean yang sama.
 
 ## Apa yang didukung
 
@@ -56,7 +56,7 @@ Respons `job` adalah objek yang sama di kedua endpoint:
 ## Kaidah yang berlaku di seluruh API
 
 - Autentikasi memakai API key, bukan cookie sesi. Lihat [Autentikasi](/authentication).
-- Base URL: `https://vidgen.id/api/v1`. Lihat [Base URL](/api-base-url).
+- Base URL: `https://vigen.id/api/v1`. Lihat [Base URL](/api-base-url).
 - Semua request dan respons berbentuk JSON kecuali `POST /api/v1/upload` yang memakai `multipart/form-data`.
 - Kesalahan selalu dijawab dengan body `{ "error": "..." }` dan kode status HTTP yang berarti. Beberapa error menambahkan field diagnostik (`requiredCredits`, `maxConcurrent`, `dailyVideosUsed`).
 - Kredit dipotong di muka dan dikembalikan kalau job gagal.

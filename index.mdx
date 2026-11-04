@@ -1,10 +1,10 @@
 ---
-title: "Vidgen API"
+title: "Vigen API"
 description: "Generate video dan gambar AI lewat satu API key. Satu endpoint untuk membuat job, satu endpoint untuk mengambil hasilnya."
-keywords: ["Vidgen API", "API video AI", "generate video API", "text to video api", "dokumentasi API"]
+keywords: ["Vigen API", "API video AI", "generate video API", "text to video api", "dokumentasi API"]
 ---
 
-Vidgen API adalah antarmuka HTTP untuk mesin generate video dan gambar Vidgen. Dengan satu API key kamu bisa membuat job, mengirim gambar atau video referensi, lalu mengambil hasil jadi — tanpa perlu membuka dashboard.
+Vigen API adalah antarmuka HTTP untuk mesin generate video dan gambar Vigen. Dengan satu API key kamu bisa membuat job, mengirim gambar atau video referensi, lalu mengambil hasil jadi — tanpa perlu membuka dashboard.
 
 <Columns cols={2}>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
@@ -23,7 +23,7 @@ Vidgen API adalah antarmuka HTTP untuk mesin generate video dan gambar Vidgen. D
 
 ## Cara kerjanya
 
-Vidgen API bersifat **asinkron**. Sebuah request `POST /api/v1/generate` langsung dijawab `202 Accepted` berisi `job.id`, lalu hasilnya diambil dengan `GET /api/v1/jobs/{id}` sampai statusnya `succeeded`.
+Vigen API bersifat **asinkron**. Sebuah request `POST /api/v1/generate` langsung dijawab `202 Accepted` berisi `job.id`, lalu hasilnya diambil dengan `GET /api/v1/jobs/{id}` sampai statusnya `succeeded`.
 
 <Steps>
   <Step title="Kirim prompt + model">
@@ -44,12 +44,12 @@ Vidgen API bersifat **asinkron**. Sebuah request `POST /api/v1/generate` langsun
 
 <Steps>
   <Step title="Buat API key">
-    Masuk ke [vidgen.id → Dokumentasi](https://vidgen.id/docs), klik **Buat API Key**, lalu salin nilainya. Key berformat `vg_...` dan hanya ditampilkan satu kali.
+    Masuk ke [vigen.id → Akun](https://vigen.id/account#api-keys), klik **Buat kunci**, lalu salin nilainya. Key berformat `vg_...` dan hanya ditampilkan satu kali.
   </Step>
   <Step title="Kirim permintaan pertama">
 
 ```bash create curl
-curl -X POST https://vidgen.id/api/v1/generate \
+curl -X POST https://vigen.id/api/v1/generate \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
   -H "Content-Type: application/json" \
   -d '{
@@ -63,7 +63,7 @@ curl -X POST https://vidgen.id/api/v1/generate \
   <Step title="Ambil hasilnya">
 
 ```bash poll curl
-curl https://vidgen.id/api/v1/jobs/JOB_ID \
+curl https://vigen.id/api/v1/jobs/JOB_ID \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU"
 ```
 
@@ -94,5 +94,5 @@ curl https://vidgen.id/api/v1/jobs/JOB_ID \
 </Columns>
 
 <Tip>
-  Butuh bantuan? Kirim pesan dukungan lewat dashboard Vidgen atau baca [kode error](/troubleshooting/errors) lebih dulu.
+  Butuh bantuan? Kirim pesan dukungan lewat dashboard Vigen atau baca [kode error](/troubleshooting/errors) lebih dulu.
 </Tip>

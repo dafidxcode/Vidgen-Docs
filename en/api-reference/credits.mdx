@@ -16,14 +16,14 @@ One lightweight call that tells you whether your account is ready to submit the 
 <RequestExample>
 
 ```bash cURL theme={null}
-curl https://vidgen.id/api/v1/user/credits \
+curl https://vigen.id/api/v1/user/credits \
   -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
 ```
 
 ```js Node.js theme={null}
 const info = await (
-  await fetch("https://vidgen.id/api/v1/user/credits", {
-    headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
+  await fetch("https://vigen.id/api/v1/user/credits", {
+    headers: { Authorization: `Bearer ${process.env.VIGEN_API_KEY}` },
   })
 ).json();
 
@@ -34,7 +34,7 @@ if (info.user.credits < 10 || info.limits.dailyVideosRemaining === 0) {
 
 ```python Python theme={null}
 info = requests.get(
-    "https://vidgen.id/api/v1/user/credits",
+    "https://vigen.id/api/v1/user/credits",
     headers={"Authorization": f"Bearer {api_key}"},
 ).json()
 
@@ -135,7 +135,7 @@ print(info["user"]["credits"], info["unlimited"], info["limits"])
 ```
 
 ```json 503 theme={null}
-{ "error": "Vidgen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara." }
+{ "error": "Vigen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara." }
 ```
 
 </ResponseExample>
@@ -147,14 +147,14 @@ print(info["user"]["credits"], info["unlimited"], info["limits"])
 
 ```js theme={null}
 async function canSubmit(model, parameters) {
-  const [{ limits }, models] = await Promise.all([vidgen.credits(), vidgen.models()]);
+  const [{ limits }, models] = await Promise.all([vigen.credits(), vigen.models()]);
   const m = models.video.find((x) => x.id === model);
   const harga = perkirakanHarga(m, parameters);
 
   return (
     limits.dailyVideosRemaining > 0 &&
     limits.currentActiveJobs < limits.maxConcurrentJobs &&
-    (await vidgen.credits()).user.credits >= harga
+    (await vigen.credits()).user.credits >= harga
   );
 }
 ```
@@ -164,10 +164,10 @@ async function canSubmit(model, parameters) {
 
 ```js theme={null}
 // run hourly from cron
-const { user, unlimited } = await vidgen.credits();
+const { user, unlimited } = await vigen.credits();
 
 if (!unlimited.active && user.credits < 20) {
-  await notifyOwner(`Sisa kredit ${user.credits}. Beli lagi di https://vidgen.id/billing`);
+  await notifyOwner(`Sisa kredit ${user.credits}. Beli lagi di https://vigen.id/billing`);
 }
 ```
 
@@ -175,7 +175,7 @@ if (!unlimited.active && user.credits < 20) {
   <Tab title="Watch the daily quota">
 
 ```js theme={null}
-const { limits } = await vidgen.credits();
+const { limits } = await vigen.credits();
 
 if (limits.dailyVideosRemaining <= 5) {
   scheduler.pauseNewVideoJobsUntil(nextWibMidnight());

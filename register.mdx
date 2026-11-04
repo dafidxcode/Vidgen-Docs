@@ -1,18 +1,18 @@
 ---
 title: "Buat akun & API key"
-description: "Daftar akun Vidgen, isi kredit, lalu buat API key untuk dipakai dari server kamu."
-keywords: ["daftar vidgen", "buat api key", "vg_ key"]
+description: "Daftar akun Vigen, isi kredit, lalu buat API key untuk dipakai dari server kamu."
+keywords: ["daftar vigen", "buat api key", "vg_ key"]
 ---
 
 ## 1. Masuk
 
-Vidgen memakai **Masuk dengan Google**. Buka [vidgen.id](https://vidgen.id) dan klik tombol masuk di kanan atas. Tidak ada pendaftaran manual lewat API.
+Vigen memakai **Masuk dengan Google**. Buka [vigen.id](https://vigen.id) dan klik tombol masuk di kanan atas. Tidak ada pendaftaran manual lewat API.
 
 Akun baru bisa langsung dipakai begitu kamu membuat API key. Jumlah kredit awal diatur dari sisi admin, jadi cek saldonya lewat [`GET /api/v1/user/credits`](/api-reference/credits) sebelum mengirim request pertama.
 
 ## 2. Isi kredit
 
-Bayar lewat QRIS di [vidgen.id/billing](https://vidgen.id/billing). Ada dua jenis paket:
+Bayar lewat QRIS di [vigen.id/billing](https://vigen.id/billing). Ada dua jenis paket:
 
 - **Paket kredit** — dipotong per generate.
 - **Paket Unlimited** — kuota harian tanpa potongan kredit untuk model tertentu; tersedia 1 hari (Rp 10.000), 7 hari, dan 30 hari.
@@ -21,10 +21,10 @@ Setelah pembayaran terkonfirmasi, saldo langsung berubah. Cek lewat `GET /api/v1
 
 ## 3. Buat API key
 
-Buka [vidgen.id/docs](https://vidgen.id/docs) dan gunakan panel **API Keys**:
+Buka [vigen.id → Akun](https://vigen.id/account#api-keys); kartu **API Keys** ada di bawah saldo kredit:
 
 <Steps>
-  <Step title="Klik Buat API Key">
+  <Step title="Klik Buat kunci">
     Beri nama yang mengenali lingkungannya, misalnya `production-server` atau `laptop-rina`.
   </Step>
   <Step title="Salin key-nya">
@@ -39,7 +39,7 @@ Buka [vidgen.id/docs](https://vidgen.id/docs) dan gunakan panel **API Keys**:
 
 ```bash theme={null}
 # .env — jangan ikut ter-commit
-VIDGEN_API_KEY=vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912
+VIGEN_API_KEY=vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912
 ```
   </Step>
 </Steps>

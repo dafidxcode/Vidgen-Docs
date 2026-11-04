@@ -1,10 +1,10 @@
 ---
 title: "API reference overview"
-description: "The five Vidgen API endpoints, the standard error shape, and the things that stay consistent across endpoints."
-keywords: ["api reference", "vidgen endpoints", "error format"]
+description: "The five Vigen API endpoints, the standard error shape, and the things that stay consistent across endpoints."
+keywords: ["api reference", "vigen endpoints", "error format"]
 ---
 
-The Vidgen API has five endpoints. They all use the same origin, the same authentication, and the same error shape.
+The Vigen API has five endpoints. They all use the same origin, the same authentication, and the same error shape.
 
 | Method | Path | Auth | Responds |
 | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ The Vidgen API has five endpoints. They all use the same origin, the same authen
 
 ## Conventions
 
-- **Base URL** `https://vidgen.id`, path prefix `/api/v1`. See [Base URL](/en/api-base-url).
+- **Base URL** `https://vigen.id`, path prefix `/api/v1`. See [Base URL](/en/api-base-url).
 - **Authentication** through `Authorization: Bearer vg_...` **or** `x-api-key: vg_...`. See [Authentication](/en/authentication).
 - **Content type** `application/json; charset=utf-8`, except uploads, which use `multipart/form-data`.
 - **Timestamps** use ISO-8601 UTC (`2026-11-04T09:12:44.000Z`). Daily quotas are counted in WIB.
@@ -42,11 +42,11 @@ What distinguishes them is the HTTP status. Some errors add diagnostic fields:
 | `409` | The model exists but is not active right now | — |
 | `413` | The file exceeds 100 MB | — |
 | `429` | Concurrency limit, daily quota, queue full, or upload limit | `maxConcurrent`, `activeJobs`, `dailyVideosUsed`, `resetsAt`; `Retry-After` header on upload |
-| `500` | A failure on the Vidgen side while loading data | — |
+| `500` | A failure on the Vigen side while loading data | — |
 | `503` | Maintenance, or the session/credit service is unreachable | — |
 
 <Info>
-  Vidgen does not issue its own numeric error codes. Do not parse strings for logic — use the HTTP status, then read the diagnostic fields if any are present.
+  Vigen does not issue its own numeric error codes. Do not parse strings for logic — use the HTTP status, then read the diagnostic fields if any are present.
 </Info>
 
 ## Error messages never contain internal details

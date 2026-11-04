@@ -1,6 +1,6 @@
 ---
 title: "Authentication"
-description: "Send your Vidgen API key through the Authorization Bearer header or x-api-key."
+description: "Send your Vigen API key through the Authorization Bearer header or x-api-key."
 keywords: ["authentication", "bearer token", "x-api-key", "401 unauthorized"]
 ---
 
@@ -9,41 +9,41 @@ Every endpoint except `GET /api/v1/models` requires an API key. The key is read 
 <CodeGroup>
 
 ```bash Authorization header theme={null}
-curl https://vidgen.id/api/v1/user/credits \
+curl https://vigen.id/api/v1/user/credits \
   -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
 ```
 
 ```bash x-api-key header theme={null}
-curl https://vidgen.id/api/v1/user/credits \
+curl https://vigen.id/api/v1/user/credits \
   -H "x-api-key: vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
 ```
 
 ```js Node.js theme={null}
-const headers = { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` };
+const headers = { Authorization: `Bearer ${process.env.VIGEN_API_KEY}` };
 
 // or
-const headers = { "x-api-key": process.env.VIDGEN_API_KEY };
+const headers = { "x-api-key": process.env.VIGEN_API_KEY };
 ```
 
 ```python Python theme={null}
-headers = {"Authorization": f"Bearer {os.environ['VIDGEN_API_KEY']}"}
+headers = {"Authorization": f"Bearer {os.environ['VIGEN_API_KEY']}"}
 
 # or
-headers = {"x-api-key": os.environ["VIDGEN_API_KEY"]}
+headers = {"x-api-key": os.environ["VIGEN_API_KEY"]}
 ```
 
 ```js fetch (browser-safe) theme={null}
-await fetch("https://vidgen.id/api/v1/user/credits", {
-  headers: { "x-api-key": import.meta.env.VITE_VIDGEN_API_KEY },
+await fetch("https://vigen.id/api/v1/user/credits", {
+  headers: { "x-api-key": import.meta.env.VITE_VIGEN_API_KEY },
 });
 ```
 
 ```js axios theme={null}
 import axios from "axios";
 
-export const vidgen = axios.create({
-  baseURL: "https://vidgen.id/api/v1",
-  headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
+export const vigen = axios.create({
+  baseURL: "https://vigen.id/api/v1",
+  headers: { Authorization: `Bearer ${process.env.VIGEN_API_KEY}` },
 });
 ```
 
@@ -61,10 +61,10 @@ export const vidgen = axios.create({
 | Status | Message | Cause |
 | --- | --- | --- |
 | `401` | `Header Authorization (Bearer vg_...) atau x-api-key diperlukan.` | No header at all. |
-| `401` | `Format API Key tidak valid. API Key Vidgen harus diawali dengan "vg_".` | Wrong prefix, or the key belongs to another service. |
+| `401` | `Format API Key tidak valid. API Key Vigen harus diawali dengan "vg_".` | Wrong prefix, or the key belongs to another service. |
 | `401` | `API Key tidak valid atau telah dicabut.` | The key hash is not in the database — typo, or it was revoked. |
 | `401` | `Pengguna pemilik API Key tidak ditemukan.` | The account that owns the key has been deleted. |
-| `503` | `...Vidgen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara.` | The site is temporarily closed. Try again later. |
+| `503` | `...Vigen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara.` | The site is temporarily closed. Try again later. |
 | `503` | `Layanan autentikasi API Key sedang tidak tersedia.` | The session service has a problem. Retry with backoff. |
 
 <Note>

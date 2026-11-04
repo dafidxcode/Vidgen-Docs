@@ -1,16 +1,16 @@
 ---
 title: "Base URL"
-description: "Origin, version prefix, and the full list of Vidgen API paths."
-keywords: ["base url", "vidgen endpoints", "https://vidgen.id/api/v1"]
+description: "Origin, version prefix, and the full list of Vigen API paths."
+keywords: ["base url", "vigen endpoints", "https://vigen.id/api/v1"]
 ---
 
 All public endpoints live on one origin with a version prefix:
 
 ```text theme={null}
-https://vidgen.id/api/v1
+https://vigen.id/api/v1
 ```
 
-Do not add a trailing slash. `POST https://vidgen.id/api/v1/generate/` can be answered `404` by the router.
+Do not add a trailing slash. `POST https://vigen.id/api/v1/generate/` can be answered `404` by the router.
 
 ## Path list
 
@@ -26,7 +26,7 @@ Generated results are served through two unversioned paths on the same origin:
 
 | Path | Description |
 | --- | --- |
-| `/api/media/{filename}` | Files uploaded to or generated on the Vidgen servers. |
+| `/api/media/{filename}` | Files uploaded to or generated on the Vigen servers. |
 | `/api/media-proxy?token=...` | Temporary link (24 hours) for media that must not be opened publicly directly. |
 
 Both are fully packaged inside the `result.url` field, so treat that value as a black box: download it, store it, do not parse it.
@@ -34,7 +34,7 @@ Both are fully packaged inside the `result.url` field, so treat that value as a 
 ## Where can you call it from?
 
 <Warning>
-  The Vidgen API **does not send CORS headers**. Calls from a browser on another domain are blocked, even when the key is correct. Run requests from your backend, worker, or Edge Function, then pass the result to your frontend.
+  The Vigen API **does not send CORS headers**. Calls from a browser on another domain are blocked, even when the key is correct. Run requests from your backend, worker, or Edge Function, then pass the result to your frontend.
 </Warning>
 
 <CodeGroup>
@@ -66,8 +66,8 @@ Non-breaking changes — a new model in the catalog, new credit prices, an extra
 
 ## Backup host
 
-Some Vidgen production environments run on an alternative domain (for example `vidgen.my`). If `vidgen.id` cannot be resolved from your server, just swap the origin; every path above stays the same.
+Some Vigen production environments run on an alternative domain (for example `vidgen.my`). If `vigen.id` cannot be resolved from your server, just swap the origin; every path above stays the same.
 
-When you contact support, mention the origin you are using — not the name of whatever service is behind it. Vidgen deliberately never exposes upstream provider identities in public responses, and the error messages you see have already been scrubbed.
+When you contact support, mention the origin you are using — not the name of whatever service is behind it. Vigen deliberately never exposes upstream provider identities in public responses, and the error messages you see have already been scrubbed.
 
 Continue to [Authentication](/en/authentication) or jump straight to the [Quickstart](/en/quickstart).

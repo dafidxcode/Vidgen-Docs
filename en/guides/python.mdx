@@ -1,7 +1,7 @@
 ---
 title: "Python"
-description: "A Vidgen API client using requests: create a job, upload a reference, poll for the result."
-keywords: ["python", "vidgen python sdk", "requests client"]
+description: "A Vigen API client using requests: create a job, upload a reference, poll for the result."
+keywords: ["python", "vigen python sdk", "requests client"]
 ---
 
 Requires Python 3.9+ and `requests`.
@@ -10,27 +10,27 @@ Requires Python 3.9+ and `requests`.
 pip install requests
 ```
 
-```python vidgen.py theme={null}
+```python vigen.py theme={null}
 import os
 import time
 from typing import Any
 
 import requests
 
-BASE = "https://vidgen.id/api/v1"
+BASE = "https://vigen.id/api/v1"
 
 
-class VidgenError(RuntimeError):
+class VigenError(RuntimeError):
     def __init__(self, status: int, body: dict[str, Any] | None):
         self.status = status
         self.body = body or {}
         super().__init__(self.body.get("error") or f"HTTP {status}")
 
 
-class Vidgen:
+class Vigen:
     def __init__(self, api_key: str | None = None):
         self.session = requests.Session()
-        self.session.headers["Authorization"] = f"Bearer {api_key or os.environ['VIDGEN_API_KEY']}"
+        self.session.headers["Authorization"] = f"Bearer {api_key or os.environ['VIGEN_API_KEY']}"
 
     def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
         res = self.session.request(method, f"{BASE}{path}", timeout=kwargs.pop("timeout", 120), **kwargs)
@@ -39,7 +39,7 @@ class Vidgen:
         except ValueError:
             payload = None
         if not res.ok:
-            raise VidgenError(res.status_code, payload)
+            raise VigenError(res.status_code, payload)
         return payload
 
     def generate(self, model: str, prompt: str, **kwargs: Any) -> dict[str, Any]:
@@ -89,9 +89,9 @@ import uuid
 
 import requests
 
-from vidgen import Vidgen, VidgenError
+from vigen import Vigen, VigenError
 
-api = Vidgen()
+api = Vigen()
 
 asset = api.upload("karakter.png", model="seedance-2-5-flash")
 
@@ -126,7 +126,7 @@ def generate_batch(prompts: list[str], model: str) -> list[dict]:
     for prompt in prompts[:jatah]:
         try:
             jobs.append(api.generate(model, prompt=prompt, parameters={"duration": "5"}))
-        except VidgenError as err:
+        except VigenError as err:
             if err.status in (402, 409):
                 break
             if err.status == 429:
