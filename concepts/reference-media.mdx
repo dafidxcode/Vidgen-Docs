@@ -9,7 +9,7 @@ Referensi masuk ke body `references` pada `POST /api/v1/generate`. Ada dua cara 
 ## Cara 1 — unggah dulu (disarankan)
 
 ```bash theme={null}
-curl -X POST https://vigen.id/api/v1/upload \
+curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_KEY_KAMU" \
   -F "file=@karakter.png" \
   -F "model=seedance-2-5-flash"
@@ -58,7 +58,7 @@ Kirim objek berisi `url` dan server yang mengunduhnya:
 
 - Server memakai timeout 20 detik. URL lambat atau melindungi dirinya dari bot akan gagal dengan `400`.
 - `type` boleh dilewat; server mendeteksi dari isi berkas (bukan dari ekstensi). Menyebutkan `type` secara eksplisit membuat perilaku lebih mudah ditebak.
-- Berkas hasil unduhan disimpan di penyimpanan sementara Vigen, jadi kamu tidak perlu mengunggahnya dua kali.
+- Berkas hasil unduhan disimpan di penyimpanan sementara Vidgen, jadi kamu tidak perlu mengunggahnya dua kali.
 
 <Info>
   Untuk URL yang butuh header privat (signed URL, token), pastikan tautannya masih berlaku saat request dibuat. Server tidak mengirim header apa pun saat mengunduh.

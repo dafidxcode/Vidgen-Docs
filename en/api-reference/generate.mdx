@@ -89,7 +89,7 @@ Creates one generation job. Credits are deducted at this endpoint, and the reque
 <RequestExample>
 
 ```bash cURL theme={null}
-curl -X POST https://vigen.id/api/v1/generate \
+curl -X POST https://vidgen.id/api/v1/generate \
   -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
   -H "Content-Type: application/json" \
   -d '{
@@ -101,10 +101,10 @@ curl -X POST https://vigen.id/api/v1/generate \
 ```
 
 ```js Node.js theme={null}
-const res = await fetch("https://vigen.id/api/v1/generate", {
+const res = await fetch("https://vidgen.id/api/v1/generate", {
   method: "POST",
   headers: {
-    Authorization: `Bearer ${process.env.VIGEN_API_KEY}`,
+    Authorization: `Bearer ${process.env.VIDGEN_API_KEY}`,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -120,7 +120,7 @@ console.log(res.status, await res.json());
 
 ```python Python theme={null}
 res = requests.post(
-    "https://vigen.id/api/v1/generate",
+    "https://vidgen.id/api/v1/generate",
     headers={"Authorization": f"Bearer {api_key}"},
     json={
         "model": "seedance-2-5-flash",
@@ -216,7 +216,7 @@ print(res.status_code, res.json())
     "model": "seedance-2-5-flash",
     "category": "Video",
     "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
-    "result": { "url": "https://vigen.id/api/media-proxy?token=..." },
+    "result": { "url": "https://vidgen.id/api/media-proxy?token=..." },
     "creditsCharged": 3,
     "createdAt": "2026-11-04T09:12:44.000Z"
   },

@@ -1,6 +1,6 @@
 ---
 title: "Frequently asked questions"
-description: "Quick answers to the most common Vigen integration problems."
+description: "Quick answers to the most common Vidgen integration problems."
 keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
 ---
 
@@ -10,7 +10,7 @@ keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
   </Accordion>
 
   <Accordion title="Why does my browser request fail even though the key is correct?" icon="globe">
-    The Vigen API does not send CORS headers, so browsers block reading the response from another domain. Put the API calls on your backend. This is deliberate: an API key must not sit in code that reaches end users.
+    The Vidgen API does not send CORS headers, so browsers block reading the response from another domain. Put the API calls on your backend. This is deliberate: an API key must not sit in code that reaches end users.
   </Accordion>
 
   <Accordion title="How many API keys can one account have?" icon="key-round">
@@ -34,11 +34,11 @@ keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
   </Accordion>
 
   <Accordion title="Why did my prompt change in the response?" icon="eraser">
-    Vigen filters sensitive words, public figure names, and indications of abuse before the request is forwarded. The `prompt` field in the response is the already-filtered content. If what remains damages your creative intent, rewrite it in neutral language.
+    Vidgen filters sensitive words, public figure names, and indications of abuse before the request is forwarded. The `prompt` field in the response is the already-filtered content. If what remains damages your creative intent, rewrite it in neutral language.
   </Accordion>
 
   <Accordion title="Can it be used for adult content?" icon="circle-alert">
-    Some models are sold without filtering and are recognizable by their name. Using the API does not change the rules: the key holder is responsible for the material submitted, and Vigen's terms of service apply on every channel. Read the terms in the dashboard before building a product on top of those models.
+    Some models are sold without filtering and are recognizable by their name. Using the API does not change the rules: the key holder is responsible for the material submitted, and Vidgen's terms of service apply on every channel. Read the terms in the dashboard before building a product on top of those models.
   </Accordion>
 
   <Accordion title="Why does audio generation not work through the API?" icon="music">
@@ -62,6 +62,6 @@ keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
   </Accordion>
 
   <Accordion title="Who do I report to if something looks wrong?" icon="life-buoy">
-    Through support in the Vigen dashboard. Include: `job.id`, the endpoint, the HTTP status, the `error` exactly as you received it, the origin you used, and the time of the event. Without internal system names — they never appear in a response.
+    Through support in the Vidgen dashboard. Include: `job.id`, the endpoint, the HTTP status, the `error` exactly as you received it, the origin you used, and the time of the event. Without internal system names — they never appear in a response.
   </Accordion>
 </AccordionGroup>

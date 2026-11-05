@@ -1,10 +1,10 @@
 ---
 title: "Ikhtisar referensi API"
-description: "Lima endpoint Vigen API, bentuk error standar, dan hal-hal yang konsisten di seluruh endpoint."
-keywords: ["api reference", "endpoint vigen", "format error"]
+description: "Lima endpoint Vidgen API, bentuk error standar, dan hal-hal yang konsisten di seluruh endpoint."
+keywords: ["api reference", "endpoint vidgen", "format error"]
 ---
 
-Vigen API punya lima endpoint. Semuanya memakai origin yang sama, autentikasi yang sama, dan bentuk error yang sama.
+Vidgen API punya lima endpoint. Semuanya memakai origin yang sama, autentikasi yang sama, dan bentuk error yang sama.
 
 | Method | Path | Auth | Balas |
 | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ Vigen API punya lima endpoint. Semuanya memakai origin yang sama, autentikasi ya
 
 ## Konvensi
 
-- **Base URL** `https://vigen.id`, prefix path `/api/v1`. Lihat [Base URL](/api-base-url).
+- **Base URL** `https://vidgen.id`, prefix path `/api/v1`. Lihat [Base URL](/api-base-url).
 - **Autentikasi** lewat `Authorization: Bearer vg_...` **atau** `x-api-key: vg_...`. Lihat [Autentikasi](/authentication).
 - **Content type** `application/json; charset=utf-8`, kecuali upload yang memakai `multipart/form-data`.
 - **Waktu** memakai ISO-8601 UTC (`2026-11-04T09:12:44.000Z`). Kuota harian dihitung dalam WIB.
@@ -42,11 +42,11 @@ Yang membedakan adalah status HTTP. Beberapa error menambahkan field diagnostik:
 | `409` | Model ada tapi sedang tidak aktif | — |
 | `413` | Berkas melebihi 100 MB | — |
 | `429` | Batas konkurensi, kuota harian, antrean penuh, atau batas unggah | `maxConcurrent`, `activeJobs`, `dailyVideosUsed`, `resetsAt`; header `Retry-After` di upload |
-| `500` | Kegagalan di sisi Vigen saat memuat data | — |
+| `500` | Kegagalan di sisi Vidgen saat memuat data | — |
 | `503` | Pemeliharaan, layanan sesi/kredit tidak bisa diakses | — |
 
 <Info>
-  Vigen tidak mengeluarkan kode error numerik sendiri. Jangan mem-parse string untuk logika — pakai status HTTP, lalu baca field diagnostik bila ada.
+  Vidgen tidak mengeluarkan kode error numerik sendiri. Jangan mem-parse string untuk logika — pakai status HTTP, lalu baca field diagnostik bila ada.
 </Info>
 
 ## Pesan error tidak pernah berisi detail internal

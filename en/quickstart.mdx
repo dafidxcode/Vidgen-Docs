@@ -1,7 +1,7 @@
 ---
 title: "Quickstart"
-description: "Send your first generation request to the Vigen API and fetch the result in three steps."
-keywords: ["quickstart", "vigen api example", "curl generate video"]
+description: "Send your first generation request to the Vidgen API and fetch the result in three steps."
+keywords: ["quickstart", "vidgen api example", "curl generate video"]
 ---
 
 What you need: one [API key](/en/register) starting with `vg_` and either an active credit balance or an active Unlimited package.
@@ -14,7 +14,7 @@ What you need: one [API key](/en/register) starting with `vg_` and either an act
       <Tab title="cURL">
 
 ```bash theme={null}
-curl -X POST https://vigen.id/api/v1/generate \
+curl -X POST https://vidgen.id/api/v1/generate \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
   -H "Content-Type: application/json" \
   -d '{
@@ -32,10 +32,10 @@ curl -X POST https://vigen.id/api/v1/generate \
       <Tab title="Node.js">
 
 ```js theme={null}
-const res = await fetch("https://vigen.id/api/v1/generate", {
+const res = await fetch("https://vidgen.id/api/v1/generate", {
   method: "POST",
   headers: {
-    Authorization: `Bearer ${process.env.VIGEN_API_KEY}`,
+    Authorization: `Bearer ${process.env.VIDGEN_API_KEY}`,
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
@@ -57,8 +57,8 @@ import os
 import requests
 
 res = requests.post(
-    "https://vigen.id/api/v1/generate",
-    headers={"Authorization": f"Bearer {os.environ['VIGEN_API_KEY']}"},
+    "https://vidgen.id/api/v1/generate",
+    headers={"Authorization": f"Bearer {os.environ['VIDGEN_API_KEY']}"},
     json={
         "model": "seedance-2-5-flash",
         "prompt": "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
@@ -108,7 +108,7 @@ print(job["id"], job["status"])
     `GET /api/v1/jobs/{jobId}` returns the latest status. Check every 5 seconds; short clips usually finish within a few minutes, but queue length plays a part.
 
 ```bash theme={null}
-curl https://vigen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
+curl https://vidgen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU"
 ```
 
@@ -122,7 +122,7 @@ curl https://vigen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
     "category": "Video",
     "queuePosition": null,
     "result": {
-      "url": "https://vigen.id/api/media-proxy?token=...",
+      "url": "https://vidgen.id/api/media-proxy?token=...",
       "duration": 5,
       "width": 1280,
       "height": 720
@@ -142,7 +142,7 @@ curl https://vigen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
     `result.url` is guaranteed to be publicly accessible for **24 hours**. After that the link stops working.
 
 ```bash theme={null}
-curl -L -o video.mp4 "https://vigen.id/api/media-proxy?token=..."
+curl -L -o video.mp4 "https://vidgen.id/api/media-proxy?token=..."
 ```
 
     Save the file to your own storage (S3, R2, disk) as soon as the status is `succeeded`. Do not keep the URL as your archive.

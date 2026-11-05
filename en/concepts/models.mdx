@@ -1,13 +1,13 @@
 ---
 title: "Model catalog"
-description: "How to read the Vigen model list at runtime, what each capability means, and how model ids are matched."
-keywords: ["vigen models", "model catalog", "seedance", "kling", "supported parameters"]
+description: "How to read the Vidgen model list at runtime, what each capability means, and how model ids are matched."
+keywords: ["vidgen models", "model catalog", "seedance", "kling", "supported parameters"]
 ---
 
-Vigen models are managed from the server and can change at any time — new models are added, old ones are retired, and credit prices are adjusted. So **do not hardcode the model list** in your product. Read it at runtime:
+Vidgen models are managed from the server and can change at any time — new models are added, old ones are retired, and credit prices are adjusted. So **do not hardcode the model list** in your product. Read it at runtime:
 
 ```bash theme={null}
-curl https://vigen.id/api/v1/models
+curl https://vidgen.id/api/v1/models
 ```
 
 This endpoint is public (no API key) and returns three buckets: `video`, `image`, `audio`. Only active models are returned.
@@ -45,6 +45,7 @@ This endpoint is public (no API key) and returns three buckets: `video`, `image`
 | `capabilities.ratios` | Valid values for `parameters.ratio`. `auto` is always accepted and is not validated. |
 | `capabilities.resolutions` | Valid values for `parameters.resolution`. |
 | `capabilities.maxReferenceImages` / `Videos` / `Audios` | How many references of that kind you may send. |
+| `capabilities.minReferenceVideos` | MINIMUM number of reference videos. When present, a request without a video is answered `400` before any credit is deducted. |
 
 Some models also return `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, or `supportsSeed`. If the key is absent, the server ignores that parameter — no error, no effect.
 
@@ -84,14 +85,15 @@ Models that are currently disabled **stay in** the database so that old history 
 
 ## Motion control models
 
-Models with motion transfer capability have their own rules:
+Models with motion transfer capability have their own rules, and there are two different duration behaviours:
 
 - `prompt` may be empty — the motion comes from the reference video.
-- The duration of the reference video determines the output duration (and the price), not the number you send in `parameters.duration`.
+- **Kling Motion Control** (`kling-mc-3-0`, `kling-mc-3-0-pro`): the length of the reference video determines the output duration (and the price), not the number you send in `parameters.duration`.
+- **Vidgen Motion** (`vg-motion`): the duration comes from `parameters.duration` (the catalogue currently offers 15 seconds only), and the price follows `resolution` (`720p` / `480p`). A reference video longer than the chosen duration is trimmed on the server.
 - Reference duration limits are looser than for regular models; see [Reference media](/en/concepts/reference-media).
 
 <Note>
-  There is no `motion` flag in `GET /api/v1/models`. Motion control models are recognized by their name in the dashboard; if you need to filter them programmatically, ask through support before hardcoding a list of ids.
+  `capabilities.motion` is not exposed by `GET /api/v1/models` — it returns only `durations`, `ratios`, `resolutions`, and the reference-count limits. So over the API the "duration comes from the video" behaviour has to be known from the model id, not read from the catalogue. If you need to filter programmatically, ask through support before hardcoding a list of ids.
 </Note>
 
 ## Audio

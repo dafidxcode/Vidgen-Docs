@@ -5,7 +5,7 @@ keywords: ["POST /api/v1/upload", "multipart", "unggah gambar referensi", "image
 api: 'POST /api/v1/upload'
 ---
 
-Menyimpan satu berkas media di Vigen dan mengembalikan objek `asset` yang bisa langsung ditempel ke `references` di [`POST /api/v1/generate`](/api-reference/generate).
+Menyimpan satu berkas media di Vidgen dan mengembalikan objek `asset` yang bisa langsung ditempel ke `references` di [`POST /api/v1/generate`](/api-reference/generate).
 
 Endpoint ini memakai `multipart/form-data`, bukan JSON.
 
@@ -36,7 +36,7 @@ Endpoint ini memakai `multipart/form-data`, bukan JSON.
 <RequestExample>
 
 ```bash cURL theme={null}
-curl -X POST https://vigen.id/api/v1/upload \
+curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
   -F "file=@gerakan.mp4" \
   -F "model=kling-mc-3-0-pro"
@@ -48,9 +48,9 @@ form.append("file", new Blob([bytes], { type: "video/mp4" }), "gerakan.mp4");
 form.append("model", "kling-mc-3-0-pro");
 
 const { asset } = await (
-  await fetch("https://vigen.id/api/v1/upload", {
+  await fetch("https://vidgen.id/api/v1/upload", {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.VIGEN_API_KEY}` },
+    headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
     body: form,
   })
 ).json();
@@ -59,7 +59,7 @@ const { asset } = await (
 ```python Python theme={null}
 with open("gerakan.mp4", "rb") as f:
     res = requests.post(
-        "https://vigen.id/api/v1/upload",
+        "https://vidgen.id/api/v1/upload",
         headers={"Authorization": f"Bearer {api_key}"},
         files={"file": f},
         data={"model": "kling-mc-3-0-pro"},

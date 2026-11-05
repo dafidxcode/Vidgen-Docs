@@ -1,7 +1,7 @@
 ---
 title: "Kode error"
-description: "Setiap status HTTP yang dikembalikan Vigen API, pesan aslinya, dan apa yang harus kamu lakukan."
-keywords: ["401", "402", "429", "error vigen api", "status code"]
+description: "Setiap status HTTP yang dikembalikan Vidgen API, pesan aslinya, dan apa yang harus kamu lakukan."
+keywords: ["401", "402", "429", "error vidgen api", "status code"]
 ---
 
 Semua kegagalan memakai body `{ "error": "..." }`. Field diagnostik tambahan hanya muncul di beberapa kode.
@@ -35,7 +35,7 @@ Semua kegagalan memakai body `{ "error": "..." }`. Field diagnostik tambahan han
     | Pesan | Penyebab |
     | --- | --- |
     | `Header Authorization (Bearer vg_...) atau x-api-key diperlukan.` | Tidak ada header kredensial. |
-    | `Format API Key tidak valid. API Key Vigen harus diawali dengan "vg_".` | Prefix hilang, atau key milik layanan lain. |
+    | `Format API Key tidak valid. API Key Vidgen harus diawali dengan "vg_".` | Prefix hilang, atau key milik layanan lain. |
     | `API Key tidak valid atau telah dicabut.` | Key salah ketik atau sudah dihapus dari akun. |
     | `Pengguna pemilik API Key tidak ditemukan.` | Akun pemilik key sudah dihapus. |
 
@@ -111,7 +111,7 @@ Semua kegagalan memakai body `{ "error": "..." }`. Field diagnostik tambahan han
     </Warning>
   </Accordion>
 
-  <Accordion title="500 — kegagalan di sisi Vigen" icon="server-crash">
+  <Accordion title="500 — kegagalan di sisi Vidgen" icon="server-crash">
 ```json theme={null}
 { "error": "Gagal memuat katalog model." }
 ```
@@ -121,7 +121,7 @@ Semua kegagalan memakai body `{ "error": "..." }`. Field diagnostik tambahan han
   <Accordion title="503 — tidak bisa diproses sekarang" icon="wrench">
     | Pesan | Penyebab |
     | --- | --- |
-    | `Vigen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara.` | Situs ditutup sementara; semua key ikut ditolak. |
+    | `Vidgen sedang dalam pemeliharaan. Penggunaan API key dinonaktifkan sementara.` | Situs ditutup sementara; semua key ikut ditolak. |
     | `Layanan autentikasi API Key sedang tidak tersedia.` | Layanan sesi sedang bermasalah. |
     | `Layanan kredit tidak dapat diakses saat ini. Silakan coba sesaat lagi.` | Saldo tidak bisa dibaca, jadi tidak ada kredit yang dipotong. |
     | `Gagal membuat antrean pemrosesan job. Kredit telah dikembalikan.` | Job gagal disimpan; refund sudah dijalankan. |
@@ -139,7 +139,7 @@ Kasus ini datang belakangan, dari `errorMessage` di [`GET /api/v1/jobs/{id}`](/a
 | `Prompt or reference content triggered AI safety filters ...` | Konten kena filter keamanan. Revisi prompt atau referensi. |
 | `Reference video duration is not supported by this model. ...` | Durasi referensi di luar aturan model motion. |
 | `Failed to align character with video motion ...` | Wajah/gerakan pada referensi tidak terdeteksi cocok. |
-| `This model is temporarily unavailable on our side. ...` | Gangguan sementara di sisi Vigen. Coba lagi atau ganti model. |
+| `This model is temporarily unavailable on our side. ...` | Gangguan sementara di sisi Vidgen. Coba lagi atau ganti model. |
 | `The processing service is temporarily undergoing maintenance. ...` | Kapasitas sedang diperbaiki. Tunda, jangan salahkan pengguna. |
 | `Queue temporarily throttled due to repeated submission of high-risk content. ...` | Terlalu banyak konten berisiko tinggi dari akun ini. Tunggu 1-2 menit. |
 

@@ -1,10 +1,10 @@
 ---
-title: "Vigen API"
+title: "Vidgen API"
 description: "Generate AI video and images with a single API key. One endpoint to create a job, one endpoint to fetch the result."
-keywords: ["Vigen API", "AI video API", "generate video API", "text to video api", "API documentation"]
+keywords: ["Vidgen API", "AI video API", "generate video API", "text to video api", "API documentation"]
 ---
 
-The Vigen API is the HTTP interface for the Vigen video and image generation engine. With one API key you can create jobs, send reference images or video, and fetch the finished result — without opening the dashboard.
+The Vidgen API is the HTTP interface for the Vidgen video and image generation engine. With one API key you can create jobs, send reference images or video, and fetch the finished result — without opening the dashboard.
 
 <Columns cols={2}>
   <Card title="Quickstart" icon="rocket" href="/en/quickstart">
@@ -23,7 +23,7 @@ The Vigen API is the HTTP interface for the Vigen video and image generation eng
 
 ## How it works
 
-The Vigen API is **asynchronous**. A `POST /api/v1/generate` request is answered immediately with `202 Accepted` containing `job.id`, and you then fetch the result with `GET /api/v1/jobs/{id}` until the status is `succeeded`.
+The Vidgen API is **asynchronous**. A `POST /api/v1/generate` request is answered immediately with `202 Accepted` containing `job.id`, and you then fetch the result with `GET /api/v1/jobs/{id}` until the status is `succeeded`.
 
 <Steps>
   <Step title="Send a prompt + model">
@@ -44,12 +44,12 @@ The Vigen API is **asynchronous**. A `POST /api/v1/generate` request is answered
 
 <Steps>
   <Step title="Create an API key">
-    Sign in at [vigen.id → Account](https://vigen.id/account#api-keys), click **Create key**, and copy the value. Keys are formatted `vg_...` and are shown only once.
+    Sign in at [vidgen.id → Account](https://vidgen.id/account#api-keys), click **Create key**, and copy the value. Keys are formatted `vg_...` and are shown only once.
   </Step>
   <Step title="Send your first request">
 
 ```bash create curl
-curl -X POST https://vigen.id/api/v1/generate \
+curl -X POST https://vidgen.id/api/v1/generate \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
   -H "Content-Type: application/json" \
   -d '{
@@ -63,7 +63,7 @@ curl -X POST https://vigen.id/api/v1/generate \
   <Step title="Fetch the result">
 
 ```bash poll curl
-curl https://vigen.id/api/v1/jobs/JOB_ID \
+curl https://vidgen.id/api/v1/jobs/JOB_ID \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU"
 ```
 
@@ -94,5 +94,5 @@ curl https://vigen.id/api/v1/jobs/JOB_ID \
 </Columns>
 
 <Tip>
-  Need help? Send a support message through the Vigen dashboard, or read the [error codes](/en/troubleshooting/errors) first.
+  Need help? Send a support message through the Vidgen dashboard, or read the [error codes](/en/troubleshooting/errors) first.
 </Tip>

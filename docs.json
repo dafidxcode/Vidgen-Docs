@@ -1,12 +1,12 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "luma",
-  "name": "Vigen API Docs",
-  "description": "Dokumentasi resmi Vigen API — generate video, gambar, dan audio lewat satu API key. Quickstart, referensi endpoint, batas pemakaian, dan pemecahan masalah.",
+  "name": "Vidgen API Docs",
+  "description": "Dokumentasi resmi Vidgen API — generate video, gambar, dan audio lewat satu API key. Quickstart, referensi endpoint, batas pemakaian, dan pemecahan masalah.",
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg",
-    "href": "https://vigen.id"
+    "href": "https://vidgen.id"
   },
   "favicon": "/favicon.svg",
   "colors": {
@@ -26,7 +26,7 @@
   },
   "api": {
     "mdx": {
-      "server": "https://vigen.id",
+      "server": "https://vidgen.id",
       "auth": {
         "method": "bearer"
       }
@@ -36,34 +36,34 @@
     "primary": {
       "type": "button",
       "label": "Buat API Key",
-      "href": "https://vigen.id/account#api-keys"
+      "href": "https://vidgen.id/account#api-keys"
     },
     "links": [
       {
         "label": "Dashboard",
-        "href": "https://vigen.id/generator"
+        "href": "https://vidgen.id/dashboard"
       }
     ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/vigen"
+      "x": "https://x.com/vidgen"
     },
     "links": [
       {
         "header": "Produk",
         "items": [
           {
-            "label": "Vigen Studio",
-            "href": "https://vigen.id/generator"
+            "label": "Vidgen Studio",
+            "href": "https://vidgen.id/video"
           },
           {
             "label": "Harga",
-            "href": "https://vigen.id/#pricing"
+            "href": "https://vidgen.id/#pricing"
           },
           {
             "label": "Pustaka",
-            "href": "https://vigen.id/library"
+            "href": "https://vidgen.id/library"
           }
         ]
       },
@@ -102,7 +102,7 @@
     "metatags": {
       "canonical": "https://docs.vidgen.id",
       "og:locale": "id_ID",
-      "og:site_name": "Vigen API"
+      "og:site_name": "Vidgen API"
     }
   },
   "navigation": {

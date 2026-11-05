@@ -1,10 +1,24 @@
 ---
 title: "Motion control lewat API"
-description: "Pindahkan gerakan dari video referensi ke karakter kamu: unggah berkas, atur orientasi, dan pahami cara penagihannya."
-keywords: ["motion control", "transfer gerakan", "kling motion", "video referensi gerak"]
+description: "Pindahkan gerakan dari video referensi ke karakter kamu: dua mesin yang tersedia, aturan masing-masing, dan cara penagihannya."
+keywords: ["motion control", "transfer gerakan", "kling motion", "vidgen motion", "video referensi gerak"]
 ---
 
 Motion control mengambil **gerakan** dari sebuah video dan menerapkannya ke **karakter** pada gambar kamu. Hasilnya adalah video baru: wajah dan gaya dari gambar, gerakan dari video.
+
+Vidgen punya dua mesin gerak-tiru, dan **aturannya berbeda**. Baca dulu tabel di bawah sebelum memilih `model`.
+
+| Aspek | `kling-mc-3-0` / `kling-mc-3-0-pro` | `vg-motion` (Vidgen Motion) |
+| --- | --- | --- |
+| Durasi keluaran | Dipinjam dari panjang video referensi, diukur ulang di server | **Dipilih** dari katalog; model ini hanya punya 15 detik |
+| Harga | Per detik, dari durasi video referensi yang terukur | Tetap per kombinasi durasi + resolusi (`15s` + `480p` atau `720p`) |
+| Resolusi | 720p | 480p (lebih murah) atau 720p |
+| Rasio | Mengikuti gambar atau video lewat `parameters.orientation` | `parameters.ratio` seperti model video biasa (`16:9` / `9:16`) |
+| Referensi wajib | Tepat 1 gambar karakter + 1 video gerakan | Minimal 1 video gerakan; sampai 10 gambar dan 5 video |
+| Panjang `prompt` | Maksimal 2.500 karakter | Sama seperti model video lain |
+| `parameters.duration` | Diabaikan | Berlaku, dan harus ada di `capabilities.durations` |
+
+Angka-angka ini tidak ditulis tangan: semuanya ada di `GET /api/v1/models`. Model gerak-tiru ditandai `capabilities.feature === "motion"`, dan `capabilities.motion.durationFromReference` memberi tahu durasinya dari mana — `true` (Kling) berarti durasi mengikuti video, `false` (Vidgen Motion) berarti durasi kamu pilih sendiri.
 
 ## Alur tiga berkas
 
@@ -13,7 +27,7 @@ Motion control mengambil **gerakan** dari sebuah video dan menerapkannya ke **ka
     Sertakan id model target supaya server memakai aturan durasi yang benar dan tidak memotong videonya.
 
 ```bash theme={null}
-curl -X POST https://vigen.id/api/v1/upload \
+curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_KEY_KAMU" \
   -F "file=@gerakan.mp4" \
   -F "model=kling-mc-3-0-pro"
@@ -22,7 +36,7 @@ curl -X POST https://vigen.id/api/v1/upload \
   <Step title="Unggah gambar karakter">
     Foto atau ilustrasi yang ingin dianimasikan. Wajah menghadap depan memberi hasil paling stabil.
   </Step>
-  <Step title="Kirim job dengan dua referensi">
+  <Step title="Kirim job dengan referensi bertipe">
     Urutan tidak menentukan peran — yang membedakan adalah field `type`.
 
 ```json theme={null}
@@ -36,53 +50,70 @@ curl -X POST https://vigen.id/api/v1/upload \
   "parameters": { "orientation": "video" }
 }
 ```
+
+    Untuk `vg-motion`, ganti `parameters.orientation` dengan `duration`, `resolution`, dan `ratio` seperti model video biasa:
+
+```json theme={null}
+{
+  "model": "vg-motion",
+  "prompt": "",
+  "references": [
+    { "id": "ref_api_1762261900_gerakan.mp4", "type": "video", "url": "/api/media/..." },
+    { "id": "ref_api_1762261901_karakter.png", "type": "image", "url": "/api/media/..." }
+  ],
+  "parameters": { "duration": "15", "resolution": "480p", "ratio": "9:16" }
+}
+```
   </Step>
 </Steps>
 
-## Aturan yang beda dari model video biasa
+## Aturan Kling Motion Control
 
-| Aspek | Motion control |
+| Aspek | Motion control Kling |
 | --- | --- |
 | `prompt` | Boleh kosong. Kalau dikosongkan, server mengisi instruksi netral otomatis. |
 | `parameters.duration` | Diabaikan. Durasi keluaran = panjang video referensi, diukur ulang di server. |
 | Harga | Mengikuti durasi video referensi yang terukur, bukan angka yang kamu kirim. |
-| Rentang video referensi | 3–30 detik (default; beberapa model menyempitkan lewat katalog). |
+| Rentang video referensi | 3–30 detik; keluaran 15 detik ke bawah kalau mesinnya membatasi lewat katalog. |
 | `orientation: "image"` | Video referensi dipangkas jadi maksimal 10 detik. |
 | Panjang `prompt` | Maksimal 2.500 karakter. Lebih dari itu ditolak sebelum kredit terpotong. |
-| Format video | Ekspor **MP4**. WebM bisa membuat durasi tidak terbaca dan job ditolak. |
 
-`parameters.orientation` hanya berlaku di sini:
+`parameters.orientation` hanya berlaku di model ini:
 
 - `"image"` — rasio keluaran mengikuti gambar karakter.
 - `"video"` — rasio keluaran mengikuti video gerakan.
 
 Nilai lain (atau kunci ini dikirim ke model non-motion) diabaikan tanpa error.
 
+## Format video referensi
+
+Ekspor **MP4** kalau bisa. WebM tidak langsung ditolak: untuk model gerak-tiru, server mengonversinya ke MP4 lebih dulu supaya durasinya terbaca. Konversi itu memakai ffmpeg di server, jadi unggahan WebM yang gagal dikonversi (berkas rusak, stream tanpa metadata panjang) akan tetap dijawab:
+
 <Warning>
-  Kalau server membalas `Durasi video referensi tidak bisa dibaca`, berkasnya bukan MP4 yang valid atau stream-nya tidak punya metadata panjang. Transcode ulang:
+  `Durasi video referensi tidak bisa dibaca.` Transcode sendiri lalu unggah ulang:
 
 ```bash theme={null}
 ffmpeg -i gagal.webm -c:v libx264 -preset veryfast -crf 20 -movflags +faststart keluar.mp4
 ```
 </Warning>
 
-## Kenapa durasi tidak bisa kamu tentukan sendiri
+## Kenapa durasi Kling tidak bisa kamu tentukan sendiri
 
-Tagihan motion control dihitung dari panjang video gerakan yang benar-benar diproses. Kalau server percaya angka `duration` dari klien, video 30 detik bisa ditagih sebagai 3 detik. Karena itu durasi diukur ulang dari berkas tersimpan dan nilai kiriman kamu ditimpa.
+Tagihan motion control Kling dihitung dari panjang video gerakan yang benar-benar diproses. Kalau server percaya angka `duration` dari klien, video 30 detik bisa ditagih sebagai 3 detik. Karena itu durasi diukur ulang dari berkas tersimpan dan nilai kiriman kamu ditimpa.
 
-Artinya: kalau butuh keluaran 6 detik, potong video referensinya jadi 6 detik sebelum diunggah.
+Artinya: kalau butuh keluaran 6 detik, potong video referensinya jadi 6 detik sebelum diunggah. `vg-motion` tidak bekerja begitu — durasi dan resolusinya kamu pilih, dan harganya tidak berubah panjang video referensimu.
 
 ## Check-list sebelum kirim
 
 <AccordionGroup>
   <Accordion title="Video gerakan">
-    Satu berkas saja. Gerakan terlihat jelas, subjek tidak keluar frame, pencahayaan stabil, tidak ada teks yang dibakar ke gambar. Durasi 3–30 detik (10 detik jika `orientation: "image"`).
+    Kling: satu berkas saja. Vidgen Motion: minimal satu, maksimal lima. Gerakan terlihat jelas, subjek tidak keluar frame, pencahayaan stabil, tidak ada teks yang dibakar ke gambar.
   </Accordion>
   <Accordion title="Gambar karakter">
-    Resolusi minimal 300 px di sisi terpendek, wajah menghadap depan, tidak tertutup objek, gaya konsisten dengan yang kamu inginkan di hasil akhir. Maksimal satu gambar karakter untuk hasil paling tajam.
+    Resolusi minimal 300 px di sisi terpendek, wajah menghadap depan, tidak tertutup objek, gaya konsisten dengan yang kamu inginkan di hasil akhir. Kling hanya menerima satu gambar; Vidgen Motion menerima sampai sepuluh.
   </Accordion>
   <Accordion title="Biaya">
-    Cek dulu: `GET /api/v1/user/credits` untuk saldo, lalu baca harga per detik model motion di katalog. Durasi video referensi menentukan tagihan, jadi video yang lebih panjang berarti kredit lebih besar.
+    Cek dulu: `GET /api/v1/user/credits` untuk saldo. Di Kling, durasi video referensi menentukan tagihan — video lebih panjang berarti kredit lebih besar. Di Vidgen Motion, harga ditentukan `duration` + `resolution` dari `priceMatrix`.
   </Accordion>
 </AccordionGroup>
 

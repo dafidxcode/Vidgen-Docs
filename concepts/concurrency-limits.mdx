@@ -4,7 +4,7 @@ description: "Batas proses bersamaan, kuota video harian, kedalaman antrean, umu
 keywords: ["rate limit", "429", "konkurensi", "kuota harian", "queue"]
 ---
 
-Vigen API memakai batas untuk menjaga antrean tetap adil. Batasnya menempel di **akun**, bukan di API key — membuat tiga key tidak melipatgandakan jatahmu.
+Vidgen API memakai batas untuk menjaga antrean tetap adil. Batasnya menempel di **akun**, bukan di API key — membuat tiga key tidak melipatgandakan jatahmu.
 
 ## Ringkasan angka
 
@@ -97,7 +97,7 @@ async function waitForJob(id, { start = 5_000, cap = 30_000, timeout = 2 * 60 * 
 
 ## Backoff saat kena `429`
 
-`429` di Vigen berarti "kapasitas", bukan "kamu diblokir". Tunggu lalu ulangi:
+`429` di Vidgen berarti "kapasitas", bukan "kamu diblokir". Tunggu lalu ulangi:
 
 - Kalau ada header `Retry-After` (hanya di `POST /api/v1/upload`), hormati nilainya dalam detik.
 - Untuk `429` tanpa header, tunggu 30 detik, lalu naikkan dua kali lipat tiap percobaan, maksimal 5 percobaan.

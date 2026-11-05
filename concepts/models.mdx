@@ -1,13 +1,13 @@
 ---
 title: "Katalog model"
-description: "Cara membaca daftar model Vigen dari runtime, apa arti setiap kapabilitas, dan bagaimana id model dicocokkan."
-keywords: ["model vigen", "katalog model", "seedance", "kling", "parameter yang didukung"]
+description: "Cara membaca daftar model Vidgen dari runtime, apa arti setiap kapabilitas, dan bagaimana id model dicocokkan."
+keywords: ["model vidgen", "katalog model", "seedance", "kling", "parameter yang didukung"]
 ---
 
-Model Vigen dikelola dari server dan bisa berubah kapan saja — model baru masuk, model lama dipensiunkan, harga kredit disesuaikan. Karena itu **jangan hardcode daftar model** di produkmu. Ambil dari runtime:
+Model Vidgen dikelola dari server dan bisa berubah kapan saja — model baru masuk, model lama dipensiunkan, harga kredit disesuaikan. Karena itu **jangan hardcode daftar model** di produkmu. Ambil dari runtime:
 
 ```bash theme={null}
-curl https://vigen.id/api/v1/models
+curl https://vidgen.id/api/v1/models
 ```
 
 Endpoint ini publik (tanpa API key) dan mengembalikan tiga keranjang: `video`, `image`, `audio`. Hanya model aktif yang muncul.
@@ -45,6 +45,7 @@ Endpoint ini publik (tanpa API key) dan mengembalikan tiga keranjang: `video`, `
 | `capabilities.ratios` | Nilai valid untuk `parameters.ratio`. `auto` selalu diterima dan tidak divalidasi. |
 | `capabilities.resolutions` | Nilai valid untuk `parameters.resolution`. |
 | `capabilities.maxReferenceImages` / `Videos` / `Audios` | Berapa banyak referensi jenis itu yang boleh dikirim. |
+| `capabilities.minReferenceVideos` | Jumlah video referensi MINIMUM. Kalau ada, permintaan tanpa video dijawab `400` sebelum kredit terpotong. |
 
 Beberapa model juga mengembalikan `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, atau `supportsSeed`. Kalau kuncinya tidak ada, parameter tersebut diabaikan server — tidak error, tidak berpengaruh.
 
@@ -84,14 +85,15 @@ Model yang sedang dimatikan **tetap ada** di database supaya riwayat lama punya 
 
 ## Model motion control
 
-Model dengan kemampuan transfer gerakan punya aturan sendiri:
+Model dengan kemampuan transfer gerakan punya aturan sendiri, dan ada dua perilaku durasi yang berbeda:
 
 - `prompt` boleh kosong — gerakannya datang dari video referensi.
-- Durasi video referensi menentukan durasi (dan harga) keluaran, bukan angka yang kamu kirim di `parameters.duration`.
+- **Kling Motion Control** (`kling-mc-3-0`, `kling-mc-3-0-pro`): panjang video referensi menentukan durasi (dan harga) keluaran, bukan angka yang kamu kirim di `parameters.duration`.
+- **Vidgen Motion** (`vg-motion`): durasi diambil dari `parameters.duration` (katalog saat ini hanya 15 detik), dan harga ikut `resolution` (`720p` / `480p`). Video referensi yang lebih panjang dari durasi otomatis dipotong di server.
 - Batas durasi referensi lebih longgar daripada model biasa; lihat [Media referensi](/concepts/reference-media).
 
 <Note>
-  Flag `motion` tidak muncul di `GET /api/v1/models`. Model motion control dikenali dari namanya di dashboard; kalau kamu perlu memfilter secara programatik, tanyakan lewat dukungan sebelum hardcode daftar id.
+  Atribut `capabilities.motion` tidak muncul di `GET /api/v1/models` — yang dikirim hanya `durations`, `ratios`, `resolutions`, dan batas jumlah referensi. Jadi dari API punanya, perilaku "durasi dari video" harus diketahui dari id modelnya, bukan dari katalog. Kalau kamu perlu memfilter secara programatik, tanyakan lewat dukungan sebelum hardcode daftar id.
 </Note>
 
 ## Audio

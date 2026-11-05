@@ -5,7 +5,7 @@ keywords: ["POST /api/v1/upload", "multipart", "upload reference image", "image 
 api: 'POST /api/v1/upload'
 ---
 
-Stores one media file in Vigen and returns an `asset` object that you can paste directly into `references` on [`POST /api/v1/generate`](/en/api-reference/generate).
+Stores one media file in Vidgen and returns an `asset` object that you can paste directly into `references` on [`POST /api/v1/generate`](/en/api-reference/generate).
 
 This endpoint uses `multipart/form-data`, not JSON.
 
@@ -36,7 +36,7 @@ This endpoint uses `multipart/form-data`, not JSON.
 <RequestExample>
 
 ```bash cURL theme={null}
-curl -X POST https://vigen.id/api/v1/upload \
+curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
   -F "file=@gerakan.mp4" \
   -F "model=kling-mc-3-0-pro"
@@ -48,9 +48,9 @@ form.append("file", new Blob([bytes], { type: "video/mp4" }), "gerakan.mp4");
 form.append("model", "kling-mc-3-0-pro");
 
 const { asset } = await (
-  await fetch("https://vigen.id/api/v1/upload", {
+  await fetch("https://vidgen.id/api/v1/upload", {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.VIGEN_API_KEY}` },
+    headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
     body: form,
   })
 ).json();
@@ -59,7 +59,7 @@ const { asset } = await (
 ```python Python theme={null}
 with open("gerakan.mp4", "rb") as f:
     res = requests.post(
-        "https://vigen.id/api/v1/upload",
+        "https://vidgen.id/api/v1/upload",
         headers={"Authorization": f"Bearer {api_key}"},
         files={"file": f},
         data={"model": "kling-mc-3-0-pro"},

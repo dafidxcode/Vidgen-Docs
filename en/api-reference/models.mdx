@@ -15,18 +15,18 @@ Returns the models that are currently usable, grouped into `video`, `image`, and
 <RequestExample>
 
 ```bash cURL theme={null}
-curl https://vigen.id/api/v1/models
+curl https://vidgen.id/api/v1/models
 ```
 
 ```js Node.js theme={null}
-const models = await (await fetch("https://vigen.id/api/v1/models")).json();
+const models = await (await fetch("https://vidgen.id/api/v1/models")).json();
 
 const video = models.models.video.find((m) => m.capabilities.durations.includes("30"));
 console.log(video?.id, video?.creditsDefault, video?.priceMatrix);
 ```
 
 ```python Python theme={null}
-models = requests.get("https://vigen.id/api/v1/models").json()["models"]
+models = requests.get("https://vidgen.id/api/v1/models").json()["models"]
 
 for m in models["video"]:
     print(m["id"], m["capabilities"]["durations"], m["creditsDefault"])

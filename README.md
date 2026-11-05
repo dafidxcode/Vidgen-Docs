@@ -1,4 +1,4 @@
-# Vigen Docs (Mintlify)
+# Vidgen Docs (Mintlify)
 
 Proyek dokumentasi berdiri sendiri untuk **docs.vidgen.id**. Folder ini sengaja terpisah
 dari `apps/web`: satu-satunya dependency-nya adalah Mintlify, jadi bisa di-push ke repo
@@ -20,7 +20,7 @@ docs-site/
 ├── api-reference/            overview, generate, get-job, upload, models, credits
 ├── troubleshooting/          errors, faq
 ├── en/                       cermin Bahasa Inggris (struktur sama persis)
-├── logo/{light,dark}.svg     wordmark Vigen
+├── logo/{light,dark}.svg     wordmark Vidgen
 └── favicon.svg
 ```
 
@@ -50,11 +50,11 @@ node -e "JSON.parse(require('fs').readFileSync('docs.json','utf8')); console.log
    `docs.json` harus berada di root repo tujuan.
    ```bash
    cd docs-site
-   git init && git add -A && git commit -m "docs: Vigen API documentation"
+   git init && git add -A && git commit -m "docs: Vidgen API documentation"
    git remote add origin https://github.com/<akun>/<repo-docs>.git
    git push -u origin main
    ```
-   Alternatif: tetap di repo Vigen dan tunjuk Mintlify ke folder `docs-site` saat membuat
+   Alternatif: tetap di repo Vidgen dan tunjuk Mintlify ke folder `docs-site` saat membuat
    proyek (dashboard menanyakan path root). Pisah repo lebih disarankan supaya riwayat
    dokumentasi tidak bercampur dengan riwayat rilis aplikasi.
 2. **Import di [mintlify.com](https://www.mintlify.com)** → *Create site* → pilih repo →
@@ -76,21 +76,21 @@ node -e "JSON.parse(require('fs').readFileSync('docs.json','utf8')); console.log
 
 ## Mengganti base URL
 
-Origin produksi ditulis di beberapa tempat. Kalau domain akhir berbeda dari `vigen.id`,
+Origin produksi ditulis di beberapa tempat. Kalau domain akhir berbeda dari `vidgen.id`,
 ubah semuanya sekaligus:
 
 ```bash
-grep -rn "vigen.id" docs-site --include=*.mdx --include=*.json
+grep -rn "vidgen.id" docs-site --include=*.mdx --include=*.json
 ```
 
 Yang wajib disamakan:
 
 | Lokasi | Nilai | Fungsi |
 | --- | --- | --- |
-| `docs.json` → `api.mdx.server` | `https://vigen.id` | origin yang dipakai playground/API reference |
-| `docs.json` → `logo.href`, `navbar`, `footer` | `https://vigen.id/...` | tautan ke produk |
-| `openapi.json` → `servers[0].url` | `https://vigen.id` | klien yang dihasilkan spec |
-| `*.mdx` | `https://vigen.id/api/v1/...` | contoh perintah di semua halaman |
+| `docs.json` → `api.mdx.server` | `https://vidgen.id` | origin yang dipakai playground/API reference |
+| `docs.json` → `logo.href`, `navbar`, `footer` | `https://vidgen.id/...` | tautan ke produk |
+| `openapi.json` → `servers[0].url` | `https://vidgen.id` | klien yang dihasilkan spec |
+| `*.mdx` | `https://vidgen.id/api/v1/...` | contoh perintah di semua halaman |
 
 ## Menjaga dokumen tetap benar
 
@@ -131,5 +131,5 @@ ls apps/web/src/app/api/v1
 Endpoint berautentikasi sesi cookie (`/api/generate`, `/api/transcribe`, `/api/storyboard/*`,
 `/api/watermark/*`, `/api/face-mask/*`, `/api/admin/*`, `/api/payments/*`) bukan bagian dari
 produk API publik. Permintaan ke halaman-halaman itu dari integrasi eksternal tidak didukung,
-dan dokumentasinya ada di internal saja. Nama sistem di belakang Vigen juga tidak pernah
+dan dokumentasinya ada di internal saja. Nama sistem di belakang Vidgen juga tidak pernah
 muncul di dokumen mana pun.

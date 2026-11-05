@@ -5,7 +5,7 @@ keywords: ["GET /api/v1/jobs", "polling", "job status", "result url"]
 api: 'GET /api/v1/jobs/{id}'
 ---
 
-Returns the latest state of a job. Calling this endpoint on a job that is `processing` also makes Vigen check the provider behind the scenes, so polling is the only signal you need.
+Returns the latest state of a job. Calling this endpoint on a job that is `processing` also makes Vidgen check the provider behind the scenes, so polling is the only signal you need.
 
 <Warning>
   A job can only be read by the account that owns it. A job belonging to another account is answered `403`, not `404`.
@@ -26,13 +26,13 @@ Returns the latest state of a job. Calling this endpoint on a job that is `proce
 <RequestExample>
 
 ```bash cURL theme={null}
-curl https://vigen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
+curl https://vidgen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
   -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912"
 ```
 
 ```js Node.js theme={null}
-const res = await fetch(`https://vigen.id/api/v1/jobs/${jobId}`, {
-  headers: { Authorization: `Bearer ${process.env.VIGEN_API_KEY}` },
+const res = await fetch(`https://vidgen.id/api/v1/jobs/${jobId}`, {
+  headers: { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` },
 });
 
 const { job } = await res.json();
@@ -41,7 +41,7 @@ console.log(job.status, job.queuePosition, job.result?.url);
 
 ```python Python theme={null}
 job = requests.get(
-    f"https://vigen.id/api/v1/jobs/{job_id}",
+    f"https://vidgen.id/api/v1/jobs/{job_id}",
     headers={"Authorization": f"Bearer {api_key}"},
 ).json()["job"]
 
@@ -141,7 +141,7 @@ print(job["status"], job["result"])
     "prompt": "secangkir kopi di meja kayu, cahaya pagi",
     "queuePosition": null,
     "result": {
-      "url": "https://vigen.id/api/media-proxy?token=3f9c...e1a2",
+      "url": "https://vidgen.id/api/media-proxy?token=3f9c...e1a2",
       "duration": 5,
       "width": 1280,
       "height": 720
@@ -213,8 +213,8 @@ while True:
 
 ```bash bash theme={null}
 while true; do
-  status=$(curl -s -H "Authorization: Bearer $VIGEN_API_KEY" \
-    "https://vigen.id/api/v1/jobs/$JOB_ID" | jq -r .job.status)
+  status=$(curl -s -H "Authorization: Bearer $VIDGEN_API_KEY" \
+    "https://vidgen.id/api/v1/jobs/$JOB_ID" | jq -r .job.status)
   echo "$status"
   if [ "$status" = "succeeded" ] || [ "$status" = "failed" ] || [ "$status" = "cancelled" ]; then
     break

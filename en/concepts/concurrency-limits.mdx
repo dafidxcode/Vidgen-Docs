@@ -4,7 +4,7 @@ description: "Concurrent process limits, the daily video quota, queue depth, job
 keywords: ["rate limit", "429", "concurrency", "daily quota", "queue"]
 ---
 
-The Vigen API uses limits to keep the queue fair. Limits attach to the **account**, not to the API key — creating three keys does not triple your allowance.
+The Vidgen API uses limits to keep the queue fair. Limits attach to the **account**, not to the API key — creating three keys does not triple your allowance.
 
 ## Numbers at a glance
 
@@ -97,7 +97,7 @@ async function waitForJob(id, { start = 5_000, cap = 30_000, timeout = 2 * 60 * 
 
 ## Backoff when you hit `429`
 
-In Vigen, `429` means "capacity", not "you are blocked". Wait, then retry:
+In Vidgen, `429` means "capacity", not "you are blocked". Wait, then retry:
 
 - If there is a `Retry-After` header (only on `POST /api/v1/upload`), honor its value in seconds.
 - For a `429` without the header, wait 30 seconds, then double the wait on each attempt, up to 5 attempts.

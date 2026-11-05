@@ -1,6 +1,6 @@
 ---
 title: "Pertanyaan umum"
-description: "Jawaban cepat untuk masalah integrasi Vigen yang paling sering muncul."
+description: "Jawaban cepat untuk masalah integrasi Vidgen yang paling sering muncul."
 keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
 ---
 
@@ -10,7 +10,7 @@ keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
   </Accordion>
 
   <Accordion title="Kenapa request dari browser saya gagal, padahal key benar?" icon="globe">
-    Vigen API tidak mengirim header CORS, jadi browser memblokir pembacaan responsnya dari domain lain. Taruh pemanggilan API di backend kamu. Ini disengaja: API key tidak boleh berada di kode yang sampai ke pengguna akhir.
+    Vidgen API tidak mengirim header CORS, jadi browser memblokir pembacaan responsnya dari domain lain. Taruh pemanggilan API di backend kamu. Ini disengaja: API key tidak boleh berada di kode yang sampai ke pengguna akhir.
   </Accordion>
 
   <Accordion title="Satu akun boleh punya berapa API key?" icon="key-round">
@@ -34,11 +34,11 @@ keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
   </Accordion>
 
   <Accordion title="Kenapa prompt saya berubah di respons?" icon="eraser">
-    Vigen menyaring kata sensitif, nama tokoh publik, dan indikasi pelanggaran sebelum permintaan diteruskan. Field `prompt` pada respons adalah isi yang sudah disaring. Kalau isinya sampai merusak maksud kreatifmu, tulis ulang dengan bahasa netral.
+    Vidgen menyaring kata sensitif, nama tokoh publik, dan indikasi pelanggaran sebelum permintaan diteruskan. Field `prompt` pada respons adalah isi yang sudah disaring. Kalau isinya sampai merusak maksud kreatifmu, tulis ulang dengan bahasa netral.
   </Accordion>
 
   <Accordion title="Boleh dipakai untuk konten dewasa?" icon="circle-alert">
-    Sebagian model dijual tanpa penyaringan dan bisa dikenali dari namanya. Aturannya tidak berubah karena kamu memakai API: tanggung jawab atas materi yang dikirim ada di pemegang key, dan ketentuan layanan Vigen tetap berlaku di semua kanal. Baca ketentuan layanan di dashboard sebelum membangun produk di atas model-model itu.
+    Sebagian model dijual tanpa penyaringan dan bisa dikenali dari namanya. Aturannya tidak berubah karena kamu memakai API: tanggung jawab atas materi yang dikirim ada di pemegang key, dan ketentuan layanan Vidgen tetap berlaku di semua kanal. Baca ketentuan layanan di dashboard sebelum membangun produk di atas model-model itu.
   </Accordion>
 
   <Accordion title="Kenapa generate audio tidak jalan lewat API?" icon="music">
@@ -62,6 +62,6 @@ keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
   </Accordion>
 
   <Accordion title="Ke siapa saya melapor kalau ada yang aneh?" icon="life-buoy">
-    Lewat dukungan di dashboard Vigen. Sertakan: `job.id`, endpoint, status HTTP, `error` persis seperti yang kamu terima, origin yang kamu pakai, dan waktu kejadian. Tanpa nama sistem internal — memang tidak pernah muncul di respons.
+    Lewat dukungan di dashboard Vidgen. Sertakan: `job.id`, endpoint, status HTTP, `error` persis seperti yang kamu terima, origin yang kamu pakai, dan waktu kejadian. Tanpa nama sistem internal — memang tidak pernah muncul di respons.
   </Accordion>
 </AccordionGroup>

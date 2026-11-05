@@ -1,16 +1,16 @@
 ---
 title: "Base URL"
-description: "Origin, prefix versi, dan daftar path Vigen API."
-keywords: ["base url", "endpoint vigen", "https://vigen.id/api/v1"]
+description: "Origin, prefix versi, dan daftar path Vidgen API."
+keywords: ["base url", "endpoint vidgen", "https://vidgen.id/api/v1"]
 ---
 
 Semua endpoint publik berada di satu origin dengan prefix versi:
 
 ```text theme={null}
-https://vigen.id/api/v1
+https://vidgen.id/api/v1
 ```
 
-Jangan menambahkan garis miring di akhirnya. `POST https://vigen.id/api/v1/generate/` bisa dijawab `404` oleh router.
+Jangan menambahkan garis miring di akhirnya. `POST https://vidgen.id/api/v1/generate/` bisa dijawab `404` oleh router.
 
 ## Daftar path
 
@@ -26,7 +26,7 @@ Hasil generate disajikan lewat dua path non-versi yang ikut satu origin:
 
 | Path | Keterangan |
 | --- | --- |
-| `/api/media/{filename}` | Berkas yang diunggah atau dihasilkan di server Vigen. |
+| `/api/media/{filename}` | Berkas yang diunggah atau dihasilkan di server Vidgen. |
 | `/api/media-proxy?token=...` | Tautan sementara (24 jam) untuk media yang tidak boleh dibuka publik langsung. |
 
 Keduanya sudah dikemas penuh di field `result.url`, jadi perlakukan nilai itu sebagai bola hitam: unduh, simpan, jangan parse.
@@ -34,7 +34,7 @@ Keduanya sudah dikemas penuh di field `result.url`, jadi perlakukan nilai itu se
 ## Dipanggil dari mana?
 
 <Warning>
-  Vigen API **tidak mengirim header CORS**. Panggilan dari browser di domain lain akan diblokir, walaupun key-nya benar. Jalankan request dari backend, worker, atau Edge Function kamu, lalu teruskan hasilnya ke frontend.
+  Vidgen API **tidak mengirim header CORS**. Panggilan dari browser di domain lain akan diblokir, walaupun key-nya benar. Jalankan request dari backend, worker, atau Edge Function kamu, lalu teruskan hasilnya ke frontend.
 </Warning>
 
 <CodeGroup>
@@ -66,8 +66,8 @@ Perubahan yang tidak merusak kontrak — model baru di katalog, harga kredit bar
 
 ## Host cadangan
 
-Sebagian lingkungan produksi Vigen berjalan di domain alternatif (misalnya `vidgen.my`). Kalau `vigen.id` tidak bisa di-resolve dari servermu, cukup ganti origin-nya; seluruh path di atas tetap sama.
+Sebagian lingkungan produksi Vidgen berjalan di domain alternatif (misalnya `vidgen.my`). Kalau `vidgen.id` tidak bisa di-resolve dari servermu, cukup ganti origin-nya; seluruh path di atas tetap sama.
 
-Kalau kamu menghubungi dukungan, sebutkan origin yang kamu pakai — bukan nama layanan di belakangnya. Vigen sengaja tidak pernah menampakkan identitas penyedia hulu di respons publik, dan pesan error yang kamu lihat sudah dibersihkan.
+Kalau kamu menghubungi dukungan, sebutkan origin yang kamu pakai — bukan nama layanan di belakangnya. Vidgen sengaja tidak pernah menampakkan identitas penyedia hulu di respons publik, dan pesan error yang kamu lihat sudah dibersihkan.
 
 Lanjut ke [Autentikasi](/authentication) atau langsung [Quickstart](/quickstart).
