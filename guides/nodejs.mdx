@@ -75,13 +75,13 @@ export async function waitForJob(id, { interval = 5_000, cap = 30_000, timeout =
 import { vidgen, waitForJob } from "./vidgen.js";
 import { writeFile } from "node:fs/promises";
 
-const karakter = await vidgen.upload(await fetch("file:///./karakter.png").then((r) => r.blob()), "seedance-2-5-flash");
+const karakter = await vidgen.upload(await fetch("file:///./karakter.png").then((r) => r.blob()), "vg-seedance-2.5");
 
 const job = await vidgen.generate({
-  model: "seedance-2-5-flash",
+  model: "vg-seedance-2.5",
   prompt: "karakter ini melambaikan tangan ke kamera, latar studio lembut",
   references: [karakter],
-  parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+  parameters: { duration: "15", ratio: "16:9", resolution: "720p" },
   idempotencyKey: `klien-42-${crypto.randomUUID().slice(0, 8)}`,
 });
 
@@ -99,7 +99,7 @@ if (selesai.status === "succeeded") {
 
 ```js theme={null}
 try {
-  await vidgen.generate({ model: "seedance-2-5-flash", prompt: "..." });
+  await vidgen.generate({ model: "vg-seedance-2.5", prompt: "..." });
 } catch (err) {
   switch (err.status) {
     case 401: /* key salah atau dicabut — jangan diulang */ throw err;

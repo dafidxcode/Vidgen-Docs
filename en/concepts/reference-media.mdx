@@ -6,13 +6,17 @@ keywords: ["image to video", "reference video", "upload api", "reference duratio
 
 References go into the `references` field of the `POST /api/v1/generate` body. There are two ways to provide them.
 
+<Note>
+  Not every model accepts references. Seedance 2.5 Flash (`seedance-2-5-flash`), for example, only runs from a text prompt - its `maxReferenceImages`, `maxReferenceVideos`, and `maxReferenceAudios` are `0`. Read those numbers from `GET /api/v1/models` instead of hardcoding a list of ids.
+</Note>
+
 ## Method 1 — upload first (recommended)
 
 ```bash theme={null}
 curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_KEY_KAMU" \
   -F "file=@karakter.png" \
-  -F "model=seedance-2-5-flash"
+  -F "model=vg-seedance-2.5"
 ```
 
 ```json theme={null}
@@ -34,7 +38,7 @@ Then paste the whole `asset` object into `references`:
 
 ```json theme={null}
 {
-  "model": "seedance-2-5-flash",
+  "model": "vg-seedance-2.5",
   "prompt": "karakter ini berlari menembus hutan pinus",
   "references": [{ "id": "ref_api_1762261900_karakter.png", "type": "image", "url": "/api/media/..." }]
 }

@@ -6,13 +6,17 @@ keywords: ["image to video", "video referensi", "upload api", "batas durasi refe
 
 Referensi masuk ke body `references` pada `POST /api/v1/generate`. Ada dua cara menyediakannya.
 
+<Note>
+  Tidak semua model menerima referensi. Seedance 2.5 Flash (`seedance-2-5-flash`) misalnya, hanya jalan dari prompt teks - `maxReferenceImages`, `maxReferenceVideos`, dan `maxReferenceAudios`-nya `0`. Baca angka itu dari `GET /api/v1/models`, jangan dari daftar yang dihardcode.
+</Note>
+
 ## Cara 1 — unggah dulu (disarankan)
 
 ```bash theme={null}
 curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_KEY_KAMU" \
   -F "file=@karakter.png" \
-  -F "model=seedance-2-5-flash"
+  -F "model=vg-seedance-2.5"
 ```
 
 ```json theme={null}
@@ -34,7 +38,7 @@ Lalu tempel objek `asset` utuh ke `references`:
 
 ```json theme={null}
 {
-  "model": "seedance-2-5-flash",
+  "model": "vg-seedance-2.5",
   "prompt": "karakter ini berlari menembus hutan pinus",
   "references": [{ "id": "ref_api_1762261900_karakter.png", "type": "image", "url": "/api/media/..." }]
 }

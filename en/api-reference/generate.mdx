@@ -20,7 +20,7 @@ Creates one generation job. Credits are deducted at this endpoint, and the reque
 ### Request body
 
 <ParamField body="model" type="string" required>
-  Model id from the catalog, for example `seedance-2-5-flash`. Spellings with dots and hyphens are treated the same. A model that exists but is currently disabled is answered `409`.
+  Model id from the catalog, for example `seedance-2-5-flash`. Spellings with dots and hyphens are treated the same. A model that exists but is currently disabled is answered `409`. Seedance 2.5 Flash (`seedance-2-5-flash`) is text-to-video only: its three reference limits are `0`, so sending any reference to it is answered `400`.
 </ParamField>
 
 <ParamField body="prompt" type="string">
@@ -95,7 +95,7 @@ curl -X POST https://vidgen.id/api/v1/generate \
   -d '{
     "model": "seedance-2-5-flash",
     "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
-    "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" },
+    "parameters": { "duration": "20", "ratio": "16:9", "resolution": "720p" },
     "idempotencyKey": "order-4711-a39f2c7b"
   }'
 ```
@@ -110,7 +110,7 @@ const res = await fetch("https://vidgen.id/api/v1/generate", {
   body: JSON.stringify({
     model: "seedance-2-5-flash",
     prompt: "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
-    parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+    parameters: { duration: "20", ratio: "16:9", resolution: "720p" },
     idempotencyKey: "order-4711-a39f2c7b",
   }),
 });
@@ -125,7 +125,7 @@ res = requests.post(
     json={
         "model": "seedance-2-5-flash",
         "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
-        "parameters": {"duration": "5", "ratio": "16:9", "resolution": "720p"},
+        "parameters": {"duration": "20", "ratio": "16:9", "resolution": "720p"},
         "idempotencyKey": "order-4711-a39f2c7b",
     },
 )

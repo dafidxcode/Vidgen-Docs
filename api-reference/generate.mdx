@@ -20,7 +20,7 @@ Membuat satu job generate. Kredit dipotong pada endpoint ini, dan request dijawa
 ### Request body
 
 <ParamField body="model" type="string" required>
-  Id model dari katalog, misalnya `seedance-2-5-flash`. Ejaan dengan titik dan tanda hubung diperlakukan sama. Model yang ada tapi sedang dinonaktifkan dijawab `409`.
+  Id model dari katalog, misalnya `seedance-2-5-flash`. Ejaan dengan titik dan tanda hubung diperlakukan sama. Model yang ada tapi sedang dinonaktifkan dijawab `409`. Seedance 2.5 Flash (`seedance-2-5-flash`) hanya jalan dari teks: tiga batas referensinya `0`, jadi mengirim referensi apa pun ke model ini dijawab `400`.
 </ParamField>
 
 <ParamField body="prompt" type="string">
@@ -95,7 +95,7 @@ curl -X POST https://vidgen.id/api/v1/generate \
   -d '{
     "model": "seedance-2-5-flash",
     "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
-    "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" },
+    "parameters": { "duration": "20", "ratio": "16:9", "resolution": "720p" },
     "idempotencyKey": "order-4711-a39f2c7b"
   }'
 ```
@@ -110,7 +110,7 @@ const res = await fetch("https://vidgen.id/api/v1/generate", {
   body: JSON.stringify({
     model: "seedance-2-5-flash",
     prompt: "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
-    parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
+    parameters: { duration: "20", ratio: "16:9", resolution: "720p" },
     idempotencyKey: "order-4711-a39f2c7b",
   }),
 });
@@ -125,7 +125,7 @@ res = requests.post(
     json={
         "model": "seedance-2-5-flash",
         "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
-        "parameters": {"duration": "5", "ratio": "16:9", "resolution": "720p"},
+        "parameters": {"duration": "20", "ratio": "16:9", "resolution": "720p"},
         "idempotencyKey": "order-4711-a39f2c7b",
     },
 )

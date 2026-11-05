@@ -93,13 +93,13 @@ from vidgen import Vidgen, VidgenError
 
 api = Vidgen()
 
-asset = api.upload("karakter.png", model="seedance-2-5-flash")
+asset = api.upload("karakter.png", model="vg-seedance-2.5")
 
 job = api.generate(
-    "seedance-2-5-flash",
+    "vg-seedance-2.5",
     prompt="karakter ini melambaikan tangan ke kamera, latar studio lembut",
     references=[asset],
-    parameters={"duration": "5", "ratio": "16:9", "resolution": "720p"},
+    parameters={"duration": "15", "ratio": "16:9", "resolution": "720p"},
     idempotencyKey=f"batch-7-{uuid.uuid4().hex[:12]}",
 )
 

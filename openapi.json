@@ -57,18 +57,18 @@
               },
               "examples": {
                 "video-dari-teks": {
-                  "summary": "Video 5 detik dari teks",
+                  "summary": "Video 20 detik dari teks",
                   "value": {
                     "model": "seedance-2-5-flash",
                     "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
-                    "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" },
+                    "parameters": { "duration": "20", "ratio": "16:9", "resolution": "720p" },
                     "idempotencyKey": "order-4711-a39f2c7b"
                   }
                 },
                 "video-dari-gambar": {
                   "summary": "Menganimasikan gambar karakter",
                   "value": {
-                    "model": "seedance-2-5-flash",
+                    "model": "vg-seedance-2.5",
                     "prompt": "karakter ini melambaikan tangan ke kamera",
                     "references": [
                       {
@@ -79,7 +79,7 @@
                         "filename": "ref_api_1762261900_karakter.png"
                       }
                     ],
-                    "parameters": { "duration": "5", "resolution": "720p" }
+                    "parameters": { "duration": "15", "resolution": "720p" }
                   }
                 },
                 "motion-control": {
