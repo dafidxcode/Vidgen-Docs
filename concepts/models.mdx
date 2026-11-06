@@ -71,6 +71,31 @@ Kunci lain yang kamu kirim (misalnya `style`, `title`, `camera`) **tidak** dipro
   Kalau kamu butuh parameter yang belum ada, kirim permintaan lewat dukungan. Menambah kunci baru tidak akan merusak integrasi lama.
 </Note>
 
+## Batas ketat per model
+
+Sebagian model hanya menerima sejumlah nilai tertentu. `capabilities` di katalog adalah sumber kebenarannya, tapi tabel berikut adalah batas yang paling sering salah dikirim. Nilai di luar daftar tidak divalidasi oleh API kami sebelum job dibuat — permintaan diteruskan ke generator, job berakhir gagal, dan kredit dikembalikan penuh.
+
+| Model (`id`) | Kategori | Durasi | Resolusi | Referensi |
+| --- | --- | --- | --- | --- |
+| `muse-video` | Video | `10` `20` `30` `40` `50` `60` detik | hanya `720p` | 4 gambar |
+| `minimax-h3` | Video | `5` `10` `15` detik | hanya `2K` | 9 gambar, 3 video, 3 audio |
+| `gemini-omni-flash-1-1` | Video | `10` detik saja | `720p`, `1080p` | 7 gambar |
+| `kling-4.0` | Video | `5` `10` `15` `30` detik | `720p`, `1080p` | 10 gambar |
+| `gpt-image-2.6-sunburst`, `gpt-image-2.6-flare` | Image | — | `1K`, `2K`, `4K` | 16 gambar |
+| `gpt-image-2.5-sunburst`, `gpt-image-2.5-flare` | Image | — | `1K`, `2K`, `4K` | lihat katalog |
+| `nano-banana-2-lite` | Image | — | hanya `1K` | 14 gambar |
+| `nano-banana-2`, `nano-banana-2.1` | Image | — | `512px`…`4K` | 14 gambar |
+| `nano-banana-pro` | Image | — | `1K`, `2K`, `4K` | 14 gambar |
+| `seedream-5.0-lite` | Image | — | `2K`, `3K` | 10 gambar |
+| `seedream-5.0-flash`, `seedream-5.0-pro` | Image | — | `1K`, `1.5K`, `2K` | 10 gambar |
+| `wan2.7-image-spicy` | Image | — | `1K`, `2K` | 9 gambar |
+| `wan2.7-image-pro-spicy` | Image | — | `1K`, `2K`, `4K` | 9 gambar |
+
+Dua hal yang perlu diperhatikan di atas angka-angka itu:
+
+- **Kualitas mengubah harga pada model gambar.** Pada `gpt-image-2.6-*`, `quality` ikut menentukan harga lewat kunci `"low:1K"` … `"max:4K"` di `priceMatrix`. Tagihan bisa berbeda belasan kali pada resolusi yang sama, jadi jangan berasumsi `creditsDefault` adalah harga tertinggimu.
+- **Rasio itu terbatas, bukan bebas.** `muse-video` dan `minimax-h3` punya daftar rasio sendiri; `gemini-omni-flash-1-1` hanya `16:9` dan `9:16`. `auto` selalu diterima dan tidak divalidasi.
+
 ## Pencocokan id
 
 `model` dicocokkan dengan kolom id di katalog, dan ejaan dengan titik serta tanda hubung diperlakukan sama:

@@ -71,6 +71,31 @@ Other keys you send (for example `style`, `title`, `camera`) are **not** process
   If you need a parameter that does not exist yet, send a request through support. Adding a new key will not break existing integrations.
 </Note>
 
+## Hard limits per model
+
+Some models accept only certain values. `capabilities` in the catalog is the source of truth, but the table below lists the limits that get sent wrong most often. A value outside the list is not validated by our API before the job is created — the request is forwarded to the generator, the job ends as failed, and the credits are refunded in full.
+
+| Model (`id`) | Category | Durations | Resolutions | References |
+| --- | --- | --- | --- | --- |
+| `muse-video` | Video | `10` `20` `30` `40` `50` `60` seconds | `720p` only | 4 images |
+| `minimax-h3` | Video | `5` `10` `15` seconds | `2K` only | 9 images, 3 videos, 3 audios |
+| `gemini-omni-flash-1-1` | Video | `10` seconds only | `720p`, `1080p` | 7 images |
+| `kling-4.0` | Video | `5` `10` `15` `30` seconds | `720p`, `1080p` | 10 images |
+| `gpt-image-2.6-sunburst`, `gpt-image-2.6-flare` | Image | — | `1K`, `2K`, `4K` | 16 images |
+| `gpt-image-2.5-sunburst`, `gpt-image-2.5-flare` | Image | — | `1K`, `2K`, `4K` | see catalog |
+| `nano-banana-2-lite` | Image | — | `1K` only | 14 images |
+| `nano-banana-2`, `nano-banana-2.1` | Image | — | `512px`…`4K` | 14 images |
+| `nano-banana-pro` | Image | — | `1K`, `2K`, `4K` | 14 images |
+| `seedream-5.0-lite` | Image | — | `2K`, `3K` | 10 images |
+| `seedream-5.0-flash`, `seedream-5.0-pro` | Image | — | `1K`, `1.5K`, `2K` | 10 images |
+| `wan2.7-image-spicy` | Image | — | `1K`, `2K` | 9 images |
+| `wan2.7-image-pro-spicy` | Image | — | `1K`, `2K`, `4K` | 9 images |
+
+Two things worth reading before those numbers:
+
+- **Quality changes the price on image models.** On `gpt-image-2.6-*`, `quality` affects the charge through keys such as `"low:1K"` … `"max:4K"` in `priceMatrix`. The same resolution can differ by more than an order of magnitude, so do not assume `creditsDefault` is your worst case.
+- **Ratios are a list, not a free field.** `muse-video` and `minimax-h3` each have their own ratio set; `gemini-omni-flash-1-1` accepts only `16:9` and `9:16`. `auto` is always accepted and never validated.
+
 ## Id matching
 
 `model` is matched against the id column in the catalog, and spellings with dots and hyphens are treated as equivalent:
