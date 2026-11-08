@@ -87,7 +87,7 @@
                   "value": {
                     "model": "gemini-omni-1.2-unlimited",
                     "prompt": "kucing oranye melompat dari meja kayu, kamera statis",
-                    "parameters": { "duration": "10", "ratio": "16:9", "resolution": "1080p" }
+                    "parameters": { "duration": "15", "ratio": "16:9", "resolution": "1080p" }
                   }
                 },
                 "motion-control": {

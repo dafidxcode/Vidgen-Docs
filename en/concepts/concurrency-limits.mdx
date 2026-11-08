@@ -33,11 +33,11 @@ The correct pattern: do not fire requests and hope. Check first, or handle `429`
 
 ### One model has a single queue
 
-`gemini-omni-1.2-unlimited` runs on a **one 1.2 job per account** queue. A second 1.2 submit while the first is still processing is answered `429` with `Generate sedang berjalan`. `gemini-omni-1.1-unlimited` does not behave this way: it uses a parallel queue, so several 1.1 jobs can run at once.
+`gemini-omni-1.2-unlimited` uses a **1-20 job queue per account on the Vidgen side**. You may submit up to 20 jobs; the server stores them as `queued` and forwards them **one at a time** to the generator. It only rejects when the queue is full: `429` with `Antrean model ini penuh`. `gemini-omni-1.1-unlimited` and `seedance-2-5-flash` use the parallel booster queue.
 
 That limit is **not cross-model**: a running `gemini-omni-1.1-unlimited` job does not block a 1.2 submit, and vice versa. A live test on 8 November 2026 showed one 1.1 job and one 1.2 job both in `processing` at the same time.
 
-The consequence for integrators: you may run 1.1 and 1.2 together, but never send more than one 1.2 job at a time. Show the queue position (`queue.position`) instead of a spinner with no explanation.
+The consequence for integrators: you may run 1.1 and 1.2 together. For 1.2, submit several jobs at once and show the queue position (`queue.position`); there is no need to wait for one to finish before sending the next.
 
 ```js theme={null}
 const { limits } = await (await fetch(`${BASE}/user/credits`, { headers })).json();

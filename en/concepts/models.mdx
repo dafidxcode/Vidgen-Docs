@@ -95,7 +95,7 @@ Other keys you send (for example `style`, `title`, `camera`) are **not** process
 
 ## Video models
 
-Ten active video models. The reference column is written `images / videos / audios`.
+Eleven active video models. The reference column is written `images / videos / audios`.
 
 | `id` | Label | Durations (s) | Resolutions | Ratios | References |
 | --- | --- | --- | --- | --- | --- |
@@ -107,8 +107,9 @@ Ten active video models. The reference column is written `images / videos / audi
 | `minimax-h3` | MiniMax H3 | `5` `10` `15` | `2K` only | `1:1` `3:4` `4:3` `9:16` `16:9` `21:9` | 9 / 3 / 3 |
 | `gemini-omni-flash-1-1` | Gemini Omni 1.1 Flash | `10` only | `720p` `1080p` | `16:9` `9:16` | 7 / 0 / 0 |
 | `kling-mc-3-0` | Kling Motion Control 3.0 Standard | `3`–`30`, from the reference video | `720p` | `16:9` `9:16` | 1 / 1 / 0 |
-| `gemini-omni-1.1-unlimited` | Gemini Omni 1.1 Flash (Unlimited) | `10` only | `720p` `1080p` | `16:9` `9:16` `1:1` | 3 / 0 / 0 |
-| `gemini-omni-1.2-unlimited` | Gemini Omni 1.2 Flash (Unlimited) | `5` `10` | `720p` `1080p` | `16:9` `9:16` `1:1` | 1 / 1 / 0 |
+| `vg-motion` | Vidgen Motion | `15` only | `480p` `720p` | `16:9` `9:16` | 10 / 5 / 0 |
+| `gemini-omni-1.1-unlimited` | Gemini Omni 1.1 Flash (Unlimited) | `10` only | `720p` `1080p` | `16:9` `9:16` `1:1` | 1 / 0 / 0 |
+| `gemini-omni-1.2-unlimited` | Gemini Omni 1.2 Flash (Unlimited) | `15` only | `720p` `1080p` | `16:9` `9:16` `1:1` | 3 / 1 / 0 |
 
 ### Video pricing (credits)
 
@@ -116,7 +117,7 @@ Prices are looked up per resolution:duration combination. The numbers below are 
 
 | `id` | 480p | 720p | 1080p | 2K |
 | --- | --- | --- | --- | --- |
-| `seedance-2-5-flash` | — | 20s = 3 | — | — |
+| `seedance-2-5-flash` | — | 20s = 0 (Unlimited quota) | — | — |
 | `seedance-2.5-promo` | 5s = 9 · 10s = 18 · 15s = 26 · 30s = 45 | 5s = 18 · 10s = 33 · 15s = 47.5 · 30s = 90 | — | — |
 | `wan-3.0` | 5s = 5 · 10s = 9 · 15s = 14 · 30s = 22 | 5s = 9 · 10s = 14 · 15s = 22 · 30s = 37.5 | — | — |
 | `kling-4.0` | — | 5s = 18 · 10s = 35 · 15s = 50 · 30s = 100 | 5s = 25 · 10s = 50 · 15s = 75 · 30s = 150 | — |
@@ -124,6 +125,7 @@ Prices are looked up per resolution:duration combination. The numbers below are 
 | `minimax-h3` | — | — | — | 5s = 9 · 10s = 15 · 15s = 21 |
 | `gemini-omni-flash-1-1` | — | 10s = 10 | 10s = 15 | — |
 | `kling-mc-3-0` | — | 3 (flat, regardless of reference length) | — | — |
+| `vg-motion` | 15s = 15 | 15s = 15 | — | — |
 | `gemini-omni-1.1-unlimited` | — | 0 | 0 | — |
 | `gemini-omni-1.2-unlimited` | — | 0 | 0 | — |
 
@@ -144,12 +146,12 @@ Vidgen derives the mode from the references you send — you do not write `mode`
 
 Two models have tighter limits than the general table:
 
-- **`gemini-omni-1.1-unlimited`** accepts text and images only. Reference video is rejected (`maxReferenceVideos: 0`). Up to three images may be sent at once.
-- **`gemini-omni-1.2-unlimited`** accepts one image, or one video **together with** one image. A video without a paired image is rejected with a message asking for a character image.
+- **`gemini-omni-1.1-unlimited`** accepts text or **exactly one** image (SFV). Reference video is rejected (`maxReferenceVideos: 0`).
+- **`gemini-omni-1.2-unlimited`** accepts one to three images (I2I), or one video **together with** one image (R2V). A video without a paired image is rejected.
 
 ## Unlimited models
 
-Two models labelled `(Unlimited)` are not sold per credit. Their price is `0` credits and `unlimitedOnly: true`.
+Three models run without credit charge: two labelled `(Unlimited)` and `seedance-2-5-flash`. All three are `unlimitedOnly: true` with `creditsDefault: 0`.
 
 ```json theme={null}
 {
@@ -159,10 +161,10 @@ Two models labelled `(Unlimited)` are not sold per credit. Their price is `0` cr
   "unlimitedOnly": true,
   "priceMatrix": {},
   "capabilities": {
-    "durations": ["5", "10"],
+    "durations": ["15"],
     "resolutions": ["720p", "1080p"],
     "ratios": ["16:9", "9:16", "1:1"],
-    "maxReferenceImages": 1,
+    "maxReferenceImages": 3,
     "maxReferenceVideos": 1,
     "maxReferenceAudios": 0,
     "feature": "create"
@@ -175,7 +177,7 @@ The rules:
 - An account **without** an active Unlimited plan that calls this id is answered `403`, not `402`. No credits are deducted.
 - An account **with** an active plan pays 0 credits, from the dashboard or from an API key.
 - Both remain subject to the 2 concurrent jobs and 50 successful videos per day limits. See [Concurrency & usage limits](/en/concepts/concurrency-limits).
-- `gemini-omni-1.2-unlimited` runs on a single queue: while one job of this model is still processing, the next one waits. `gemini-omni-1.1-unlimited` uses a parallel queue, so several jobs can run at once.
+- `gemini-omni-1.2-unlimited` uses a 1-20 queue in Vidgen: a user may queue up to 20 jobs, but the server forwards them one at a time to the generator. `gemini-omni-1.1-unlimited` and `seedance-2-5-flash` use the parallel booster queue.
 
 ```json 403 theme={null}
 {
@@ -310,7 +312,7 @@ Models with `capabilities.feature: "motion"` have their own rules:
 - `parameters.orientation` chooses whether the output ratio follows the character image (`image`) or the motion video (`video`).
 - Reference duration limits are looser than for regular models: 3–30 seconds, and the video is not auto-trimmed. See [Reference media](/en/concepts/reference-media).
 
-Only `kling-mc-3-0` is active in this group right now. `capabilities.feature` and `capabilities.motion` are published in the catalog, so you can filter programmatically:
+Two models are active in this group: `kling-mc-3-0` (duration from the video) and `vg-motion` (duration selected, 15 seconds). `capabilities.feature` and `capabilities.motion` are published in the catalog, so you can filter programmatically:
 
 ```js theme={null}
 const motionModels = models.video.filter((m) => m.capabilities.feature === "motion");

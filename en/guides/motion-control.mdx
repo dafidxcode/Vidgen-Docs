@@ -6,7 +6,7 @@ keywords: ["motion control", "motion transfer", "kling motion", "reference video
 
 Motion control takes the **motion** from a video and applies it to the **character** in your image. The result is a new video: face and style from the image, motion from the video.
 
-Models in this group are marked `capabilities.feature === "motion"` in [`GET /api/v1/models`](/en/api-reference/models). Only one is active right now:
+Models in this group are marked `capabilities.feature === "motion"` in [`GET /api/v1/models`](/en/api-reference/models). Two are active: `kling-mc-3-0` (duration from the video) and `vg-motion` (15 second duration, up to 10 images + 5 reference videos). The example below uses `kling-mc-3-0`:
 
 | Field | Value |
 | --- | --- |
