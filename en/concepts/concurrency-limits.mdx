@@ -33,9 +33,11 @@ The correct pattern: do not fire requests and hope. Check first, or handle `429`
 
 ### One model has a single queue
 
-`gemini-omni-1.2-unlimited` runs on a **one job per account** queue. While one job of that model is still processing, the next one waits — including jobs of other models that share the same path. `gemini-omni-1.1-unlimited` does not behave this way: it uses a parallel queue, so several jobs can run at once.
+`gemini-omni-1.2-unlimited` runs on a **one 1.2 job per account** queue. A second 1.2 submit while the first is still processing is answered `429` with `Generate sedang berjalan`. `gemini-omni-1.1-unlimited` does not behave this way: it uses a parallel queue, so several 1.1 jobs can run at once.
 
-The consequence for integrators: do not assume two Unlimited models can be sent at the same time. If you send 1.2 then 1.1, the second may wait longer than expected. Show the queue position (`queue.position`) instead of a spinner with no explanation.
+That limit is **not cross-model**: a running `gemini-omni-1.1-unlimited` job does not block a 1.2 submit, and vice versa. A live test on 8 November 2026 showed one 1.1 job and one 1.2 job both in `processing` at the same time.
+
+The consequence for integrators: you may run 1.1 and 1.2 together, but never send more than one 1.2 job at a time. Show the queue position (`queue.position`) instead of a spinner with no explanation.
 
 ```js theme={null}
 const { limits } = await (await fetch(`${BASE}/user/credits`, { headers })).json();

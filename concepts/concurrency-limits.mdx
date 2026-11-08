@@ -33,9 +33,11 @@ Pola yang benar: jangan kirim sambil berharap. Cek dulu, atau tangani `429` seba
 
 ### Satu model punya antrean tunggal
 
-`gemini-omni-1.2-unlimited` berjalan di antrean **satu job per akun**. Selama satu job model itu masih diproses, job berikutnya menunggu — termasuk job model lain yang memakai jalur yang sama. `gemini-omni-1.1-unlimited` tidak begini: ia memakai antrean paralel, jadi beberapa job bisa berjalan bersamaan.
+`gemini-omni-1.2-unlimited` berjalan di antrean **satu job 1.2 per akun**. Submit 1.2 kedua selama yang pertama masih diproses dijawab `429` dengan pesan `Generate sedang berjalan`. `gemini-omni-1.1-unlimited` tidak begini: ia memakai antrean paralel, jadi beberapa job 1.1 bisa berjalan bersamaan.
 
-Konsekuensinya untuk integrator: jangan menganggap dua model Unlimited bisa dikirim serentak. Kalau kamu mengirim 1.2 lalu 1.1, yang kedua bisa menunggu lebih lama dari perkiraan. Tampilkan posisi antrean (`queue.position`) alih-alih spinner tanpa keterangan.
+Batas itu **tidak lintas model**: job `gemini-omni-1.1-unlimited` yang sedang berjalan tidak menghalangi submit 1.2, dan sebaliknya. Uji live 8 November 2026 menunjukkan satu job 1.1 dan satu job 1.2 berstatus `processing` bersamaan.
+
+Konsekuensinya untuk integrator: kamu boleh menjalankan 1.1 dan 1.2 bersamaan, tetapi jangan mengirim lebih dari satu job 1.2 pada satu waktu. Tampilkan posisi antrean (`queue.position`) alih-alih spinner tanpa keterangan.
 
 ```js theme={null}
 const { limits } = await (await fetch(`${BASE}/user/credits`, { headers })).json();
