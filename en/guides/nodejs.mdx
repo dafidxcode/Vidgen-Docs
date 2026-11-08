@@ -39,10 +39,10 @@ export const vidgen = {
   /** Fetch the latest status; the server also settles `processing` jobs. */
   job: (id) => call(`/jobs/${id}`).then((r) => r.job),
 
-  /** Upload a reference from a Buffer/File. Include `model` so the duration rules are right. */
-  upload: (file, model) => {
+  /** Upload a reference from a Blob/Buffer. Include `model` so the duration rules are right. */
+  upload: (file, model, filename = "reference.bin") => {
     const form = new FormData();
-    form.append("file", file);
+    form.append("file", file, filename);
     if (model) form.append("model", model);
     return call("/upload", { method: "POST", form }).then((r) => r.asset);
   },
@@ -67,43 +67,102 @@ export async function waitForJob(id, { interval = 5_000, cap = 30_000, timeout =
     delay = Math.min(delay * 1.6, cap);
   }
 }
+
+/**
+ * Credit estimate before the job is sent. Mirrors the server's price lookup:
+ * quality:resolution -> resolution:duration (both orders) -> duration ->
+ * resolution -> creditsDefault. `model` is one entry from GET /models.
+ */
+export function estimateCredits(model, parameters = {}) {
+  const matrix = model.priceMatrix ?? {};
+  const res = parameters.resolution;
+  const resLow = res?.toLowerCase();
+  const dur = parameters.duration ? String(parameters.duration).replace(/s$/i, "") : undefined;
+  const durKeys = dur ? [dur, `${dur}s`] : [];
+  const quality = parameters.quality?.toLowerCase();
+  const num = (v) => (typeof v === "number" ? v : undefined);
+
+  if (quality && res) {
+    const hit = num(matrix[`${quality}:${res}`]) ?? num(matrix[`${quality}:${resLow}`]);
+    if (hit !== undefined) return hit;
+  }
+  if (resLow && dur) {
+    for (const k of durKeys) {
+      const hit =
+        num(matrix[`${resLow}:${k}`]) ?? num(matrix[`${k}:${resLow}`]) ??
+        num(matrix[`${resLow}:${k.toLowerCase()}`]) ?? num(matrix[`${k.toLowerCase()}:${resLow}`]);
+      if (hit !== undefined) return hit;
+    }
+  }
+  for (const k of durKeys) {
+    const hit = num(matrix[k]) ?? num(matrix[k.toLowerCase()]);
+    if (hit !== undefined) return hit;
+  }
+  if (res) {
+    const hit = num(matrix[res]) ?? num(matrix[resLow]);
+    if (hit !== undefined) return hit;
+  }
+  return model.creditsDefault;
+}
 ```
+
+<Note>
+  `estimateCredits` ignores `unlimitedOnly`. For a flagged model, the real charge is `0` when the Unlimited plan is active and the request is rejected `403` when it is not — check that flag before using this number.
+</Note>
 
 ## Usage
 
 ```js theme={null}
-import { vidgen, waitForJob } from "./vidgen.js";
-import { writeFile } from "node:fs/promises";
+import { vidgen, waitForJob, estimateCredits } from "./vidgen.js";
+import { readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 
-const karakter = await vidgen.upload(await fetch("file:///./karakter.png").then((r) => r.blob()), "vg-seedance-2.5");
+const MODEL = "seedance-2.5-promo";
+const PARAMS = { duration: "5", ratio: "16:9", resolution: "480p" };
+
+// Public catalog: no key needed, but the client above still sends one.
+const catalog = await vidgen.models();
+const model = catalog.video.find((m) => m.id === MODEL);
+if (!model) throw new Error(`${MODEL} is not available right now`);
+if (model.unlimitedOnly) throw new Error("this model needs an active Unlimited plan");
+
+console.log("estimated credits:", estimateCredits(model, PARAMS)); // 9
+
+const bytes = await readFile("character.png");
+const character = await vidgen.upload(new Blob([bytes], { type: "image/png" }), MODEL, "character.png");
 
 const job = await vidgen.generate({
-  model: "vg-seedance-2.5",
-  prompt: "karakter ini melambaikan tangan ke kamera, latar studio lembut",
-  references: [karakter],
-  parameters: { duration: "15", ratio: "16:9", resolution: "720p" },
-  idempotencyKey: `klien-42-${crypto.randomUUID().slice(0, 8)}`,
+  model: MODEL,
+  prompt: "this character waves at the camera, soft studio background",
+  references: [character],
+  parameters: PARAMS,
+  idempotencyKey: `client-42-${randomUUID().slice(0, 8)}`,
 });
 
-const selesai = await waitForJob(job.id);
+const finished = await waitForJob(job.id);
 
-if (selesai.status === "succeeded") {
-  const bytes = await fetch(selesai.result.url).then((r) => r.arrayBuffer());
-  await writeFile(`hasil-${selesai.id}.mp4`, bytes);
+if (finished.status === "succeeded") {
+  const result = await fetch(finished.result.url).then((r) => r.arrayBuffer());
+  await writeFile(`result-${finished.id}.mp4`, result);
 } else {
-  console.error(selesai.errorMessage, "kredit kembali:", selesai.creditsCharged === 0);
+  console.error(finished.errorMessage, "credits refunded:", finished.creditsCharged === 0);
 }
 ```
+
+<Warning>
+  Node's `fetch()` does not support `file://` URLs. Read the file with `node:fs/promises` and wrap it in a `Blob` as shown. `crypto.randomUUID()` only became global in Node 19 — import it from `node:crypto` so it works on Node 18.
+</Warning>
 
 ## Handling errors
 
 ```js theme={null}
 try {
-  await vidgen.generate({ model: "vg-seedance-2.5", prompt: "..." });
+  await vidgen.generate({ model: "seedance-2.5-promo", prompt: "..." });
 } catch (err) {
   switch (err.status) {
     case 401: /* wrong or revoked key — do not retry */ throw err;
     case 402: /* balance exhausted: err.body.requiredCredits, err.body.currentCredits */ break;
+    case 403: /* err.body.code === "unlimited_required": quota model, not for this account */ break;
     case 409: /* inactive model — refetch the catalog */ break;
     case 429: /* capacity: wait, then retry with the same idempotencyKey */ break;
     case 503: /* maintenance: defer the job to the next window */ break;
@@ -145,6 +204,34 @@ export interface Asset {
   duration?: number | null;
   width?: number | null;
   height?: number | null;
+}
+
+export interface CatalogModel {
+  id: string;
+  label: string;
+  category: "Video" | "Image" | "Audio";
+  mode: "video" | "image" | "audio";
+  creditsDefault: number;
+  unlimitedOnly: boolean;
+  priceMatrix: Record<string, number>;
+  capabilities: {
+    durations: string[];
+    ratios: string[];
+    resolutions: string[];
+    maxReferenceImages: number;
+    maxReferenceVideos: number;
+    maxReferenceAudios: number;
+    minReferenceVideos?: number;
+    qualities?: string[];
+    backgrounds?: string[];
+    outputFormats?: string[];
+    supportsNegativePrompt?: boolean;
+    supportsSeed?: boolean;
+    feature?: "create" | "motion";
+    motion?: { minDurationSec?: number; maxDurationSec?: number; durationFromReference?: boolean };
+    modes?: string[];
+    versions?: string[];
+  };
 }
 ```
 

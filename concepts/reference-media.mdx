@@ -16,7 +16,7 @@ Referensi masuk ke body `references` pada `POST /api/v1/generate`. Ada dua cara 
 curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_KEY_KAMU" \
   -F "file=@karakter.png" \
-  -F "model=vg-seedance-2.5"
+  -F "model=seedance-2.5-promo"
 ```
 
 ```json theme={null}
@@ -38,7 +38,7 @@ Lalu tempel objek `asset` utuh ke `references`:
 
 ```json theme={null}
 {
-  "model": "vg-seedance-2.5",
+  "model": "seedance-2.5-promo",
   "prompt": "karakter ini berlari menembus hutan pinus",
   "references": [{ "id": "ref_api_1762261900_karakter.png", "type": "image", "url": "/api/media/..." }]
 }
@@ -85,16 +85,30 @@ Kirim objek berisi `url` dan server yang mengunduhnya:
 
 ## Jumlah maksimum per model
 
-| Kategori model | Gambar | Video | Audio |
-| --- | --- | --- | --- |
-| Video | 9 | 1 | 1 |
-| Gambar | 10 | 0 | 0 |
+Batasnya **berbeda tiap model** dan diterbitkan di katalog. Tabel ini hanya potret per 8 November 2026; sumber kebenarannya tetap `capabilities.maxReferenceImages`, `maxReferenceVideos`, dan `maxReferenceAudios`.
 
-Angka ini adalah bawaan; tiap model bisa mendeklarasikan batas sendiri lewat `capabilities.maxReferenceImages`, `maxReferenceVideos`, dan `maxReferenceAudios` di katalog. Baca dari sana, bukan dari tabel ini.
+| Model video | Gambar | Video | Audio |
+| --- | --- | --- | --- |
+| `seedance-2-5-flash` | 0 | 0 | 0 |
+| `seedance-2.5-promo` | 30 | 1 | 1 |
+| `wan-3.0` | 9 | 3 | 3 |
+| `kling-4.0` | 10 | 5 | 0 |
+| `muse-video` | 4 | 0 | 0 |
+| `minimax-h3` | 9 | 3 | 3 |
+| `gemini-omni-flash-1-1` | 7 | 0 | 0 |
+| `kling-mc-3-0` | 1 | 1 | 0 |
+| `gemini-omni-1.1-unlimited` | 3 | 0 | 0 |
+| `gemini-omni-1.2-unlimited` | 1 | 1 | 0 |
+
+Model gambar menerima **gambar saja**: 16 gambar untuk keluarga GPT Image 2.5/2.6, 14 untuk Nano Banana, 10 untuk Seedream 5.0, dan 9 untuk Wan 2.7 Spicy. Video dan audio selalu `0`.
 
 <Note>
-  Mengirim video atau audio ke model gambar selalu ditolak dengan `400`, berapa pun jumlahnya.
+  Mengirim video atau audio ke model gambar selalu ditolak dengan `400`, berapa pun jumlahnya. Model dengan batas `0` untuk suatu jenis juga menolak jenis itu — misalnya `seedance-2-5-flash` menolak semua referensi karena ketiga batasnya `0`.
 </Note>
+
+<Warning>
+  `gemini-omni-1.1-unlimited` dan `gemini-omni-1.2-unlimited` punya aturan berbeda: yang pertama menerima sampai 3 gambar tanpa video, yang kedua menerima 1 gambar **atau** 1 video bersama 1 gambar. Video tanpa gambar pasangan ditolak.
+</Warning>
 
 ## Praktik yang menghindarkan kegagalan
 

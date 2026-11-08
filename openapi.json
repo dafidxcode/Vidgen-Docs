@@ -68,7 +68,7 @@
                 "video-dari-gambar": {
                   "summary": "Menganimasikan gambar karakter",
                   "value": {
-                    "model": "vg-seedance-2.5",
+                    "model": "seedance-2.5-promo",
                     "prompt": "karakter ini melambaikan tangan ke kamera",
                     "references": [
                       {
@@ -79,13 +79,21 @@
                         "filename": "ref_api_1762261900_karakter.png"
                       }
                     ],
-                    "parameters": { "duration": "15", "resolution": "720p" }
+                    "parameters": { "duration": "5", "resolution": "480p" }
+                  }
+                },
+                "model-unlimited": {
+                  "summary": "Model kuota Unlimited (butuh langganan aktif)",
+                  "value": {
+                    "model": "gemini-omni-1.2-unlimited",
+                    "prompt": "kucing oranye melompat dari meja kayu, kamera statis",
+                    "parameters": { "duration": "10", "ratio": "16:9", "resolution": "1080p" }
                   }
                 },
                 "motion-control": {
                   "summary": "Transfer gerakan, prompt boleh kosong",
                   "value": {
-                    "model": "kling-mc-3-0-pro",
+                    "model": "kling-mc-3-0",
                     "prompt": "",
                     "references": [
                       { "id": "ref_api_1762261900_gerakan.mp4", "type": "video" },
@@ -145,6 +153,22 @@
                     "error": { "type": "string" },
                     "requiredCredits": { "type": "number" },
                     "currentCredits": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Model ber-`unlimitedOnly` dipanggil tanpa paket Unlimited aktif. Kredit tidak terpotong.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error", "code"],
+                  "properties": {
+                    "error": { "type": "string" },
+                    "code": { "type": "string", "const": "unlimited_required" },
+                    "model": { "type": "string", "description": "Id model yang diminta." }
                   }
                 }
               }
@@ -271,7 +295,7 @@
                   "model": {
                     "type": "string",
                     "description": "Id model target. Menentukan aturan durasi dan cara penyimpanan.",
-                    "example": "kling-mc-3-0-pro"
+                    "example": "kling-mc-3-0"
                   }
                 }
               }
@@ -457,10 +481,10 @@
             "type": "object",
             "description": "Hanya kunci dikenal yang diproses; sisanya diabaikan tanpa error.",
             "properties": {
-              "duration": { "type": "string", "description": "Detik, akhiran `s` boleh. Diabaikan pada motion control." },
-              "resolution": { "type": "string", "description": "Contoh `720p`, `1080p`, `1K`, `2K`, `4K`." },
+              "duration": { "type": "string", "description": "Detik, akhiran `s` boleh. Diabaikan pada motion control. Bila dilewat, dipakai entri pertama `capabilities.durations` dan harga dihitung dari nilai itu." },
+              "resolution": { "type": "string", "description": "Contoh `720p`, `1080p`, `1K`, `2K`, `4K`. Bila dilewat, dipakai entri pertama `capabilities.resolutions`." },
               "ratio": { "type": "string", "description": "`16:9`, `9:16`, `1:1`, `4:3`, `3:4`, `auto`. Alias: `aspect_ratio`." },
-              "quality": { "type": "string", "description": "Hanya jika model punya `capabilities.qualities`." },
+              "quality": { "type": "string", "enum": ["low", "medium", "high", "xhigh", "max"], "description": "Hanya jika model punya `capabilities.qualities`. Ikut menentukan harga lewat kunci `quality:resolution`." },
               "background": { "type": "string", "description": "Hanya jika model punya `capabilities.backgrounds`." },
               "output_format": { "type": "string", "description": "Alias: `format`." },
               "negative_prompt": { "type": "string", "description": "Hanya jika `supportsNegativePrompt`." },
@@ -562,13 +586,17 @@
       },
       "Model": {
         "type": "object",
-        "required": ["id", "label", "category", "mode", "creditsDefault", "capabilities"],
+        "required": ["id", "label", "category", "mode", "creditsDefault", "unlimitedOnly", "capabilities"],
         "properties": {
           "id": { "type": "string" },
           "label": { "type": "string" },
           "category": { "$ref": "#/components/schemas/MediaCategory" },
           "mode": { "type": "string", "enum": ["video", "image", "audio"] },
           "creditsDefault": { "type": "number" },
+          "unlimitedOnly": {
+            "type": "boolean",
+            "description": "`true` bila model hanya untuk pemilik paket Unlimited aktif. Jangan menyaring dari `creditsDefault === 0`; pakai flag ini."
+          },
           "priceMatrix": {
             "type": "object",
             "description": "Override per kunci: durasi, resolusi, `res:duration`, atau `quality:resolution`.",
@@ -582,7 +610,24 @@
               "resolutions": { "type": "array", "items": { "type": "string" } },
               "maxReferenceImages": { "type": "integer" },
               "maxReferenceVideos": { "type": "integer" },
-              "maxReferenceAudios": { "type": "integer" }
+              "maxReferenceAudios": { "type": "integer" },
+              "minReferenceVideos": { "type": "integer", "description": "Hanya muncul bila lebih dari 0." },
+              "qualities": { "type": "array", "items": { "type": "string" }, "description": "Hanya pada model yang mendukung `parameters.quality`." },
+              "backgrounds": { "type": "array", "items": { "type": "string" } },
+              "outputFormats": { "type": "array", "items": { "type": "string" } },
+              "supportsNegativePrompt": { "type": "boolean", "description": "Hanya muncul bila `true`." },
+              "supportsSeed": { "type": "boolean", "description": "Hanya muncul bila `true`." },
+              "feature": { "type": "string", "enum": ["create", "motion"] },
+              "motion": {
+                "type": "object",
+                "properties": {
+                  "minDurationSec": { "type": "number" },
+                  "maxDurationSec": { "type": "number" },
+                  "durationFromReference": { "type": "boolean" }
+                }
+              },
+              "modes": { "type": "array", "items": { "type": "string" }, "description": "Khusus audio." },
+              "versions": { "type": "array", "items": { "type": "string" }, "description": "Khusus audio." }
             }
           }
         }

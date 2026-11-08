@@ -31,6 +31,12 @@ This is only enforced for Unlimited quota usage. If your account pays per credit
 
 The correct pattern: do not fire requests and hope. Check first, or handle `429` as a rescheduling signal.
 
+### One model has a single queue
+
+`gemini-omni-1.2-unlimited` runs on a **one job per account** queue. While one job of that model is still processing, the next one waits — including jobs of other models that share the same path. `gemini-omni-1.1-unlimited` does not behave this way: it uses a parallel queue, so several jobs can run at once.
+
+The consequence for integrators: do not assume two Unlimited models can be sent at the same time. If you send 1.2 then 1.1, the second may wait longer than expected. Show the queue position (`queue.position`) instead of a spinner with no explanation.
+
 ```js theme={null}
 const { limits } = await (await fetch(`${BASE}/user/credits`, { headers })).json();
 

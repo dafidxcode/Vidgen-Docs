@@ -34,16 +34,16 @@ Creates one generation job. Credits are deducted at this endpoint, and the reque
 
   <Expandable title="recognized properties">
     <ParamField body="duration" type="string">
-      Duration in seconds, e.g. `"5"` or `"30"`. A trailing `s` is accepted and stripped. Validated against `capabilities.durations`. **Ignored on motion control models.**
+      Duration in seconds, e.g. `"5"` or `"30"`. A trailing `s` is accepted and stripped. Validated against `capabilities.durations`. **Ignored on motion control models.** When omitted, the server uses the first entry of `capabilities.durations` — and the price is computed from that value, not from `creditsDefault`.
     </ParamField>
     <ParamField body="resolution" type="string">
-      Resolution, e.g. `"720p"`, `"1080p"`, `"1K"`, `"2K"`, `"4K"`. Validated against `capabilities.resolutions`.
+      Resolution, e.g. `"720p"`, `"1080p"`, `"1K"`, `"2K"`, `"4K"`. Validated against `capabilities.resolutions`. When omitted, the server uses the first entry of that list.
     </ParamField>
     <ParamField body="ratio" type="string">
       Aspect ratio: `"16:9"`, `"9:16"`, `"1:1"`, `"4:3"`, `"3:4"`, or `"auto"`. `aspect_ratio` is accepted as an alias.
     </ParamField>
     <ParamField body="quality" type="string">
-      For image models that have `capabilities.qualities` (`low`, `medium`, `high`, `max`). Ignored if the model does not support it.
+      For image models that have `capabilities.qualities` (`low`, `medium`, `high`, `xhigh`, `max`). Also drives the price through the `quality:resolution` key. Ignored if the model does not support it.
     </ParamField>
     <ParamField body="background" type="string">
       For image models that have `capabilities.backgrounds` (`auto`, `transparent`, `opaque`).
@@ -74,7 +74,7 @@ Creates one generation job. Credits are deducted at this endpoint, and the reque
       A public media URL (`http` or `https`) that the server will download with a 20 second timeout. Download failures are answered `400`.
     </ParamField>
     <ParamField body="type" type="string">
-      `"image"`, `"video"`, or `"audio"`. May be omitted — the server detects it from the file contents. Maximum counts per type depend on the model (defaults: 9 images / 1 video / 1 audio; image models allow 10 images and no video or audio).
+      `"image"`, `"video"`, or `"audio"`. May be omitted — the server detects it from the file contents. Maximum counts depend on the model and are read from `capabilities.maxReferenceImages`, `maxReferenceVideos`, and `maxReferenceAudios`. A value of `0` means the model rejects that reference kind.
     </ParamField>
     <ParamField body="filename" type="string">
       File name in server storage. Follow the exact value from the upload response.
@@ -225,6 +225,14 @@ print(res.status_code, res.json())
 }
 ```
 
+```json 403 — subscription-only model theme={null}
+{
+  "error": "Model \"Gemini Omni 1.2 Flash (Unlimited)\" hanya tersedia untuk paket Unlimited aktif.",
+  "code": "unlimited_required",
+  "model": "gemini-omni-1.2-unlimited"
+}
+```
+
 ```json 402 — not enough credits theme={null}
 {
   "error": "Kredit akun tidak mencukupi. Pembuatan ini membutuhkan 10 kredit",
@@ -267,5 +275,11 @@ print(res.status_code, res.json())
   </Accordion>
   <Accordion title="Limits that make this request get rejected">
     Two concurrent processes (Unlimited accounts only), 50 successful videos per day, the server queue being full, or the site being under maintenance. All of them use `429` or `503`.
+  </Accordion>
+  <Accordion title="Unlimited models and the 403 code">
+    Models with `unlimitedOnly: true` in the catalog can only be used by accounts with an active Unlimited plan. Without a subscription, this endpoint answers `403` with `code: "unlimited_required"` and `model` set to the requested id. No credits are deducted. Do not confuse this `403` with the `403` from `GET /api/v1/jobs/{id}` (job owned by another account) — tell them apart by `code`.
+  </Accordion>
+  <Accordion title="Default duration and resolution">
+    If you omit `duration` or `resolution`, the server uses the first entry of that model's capability list, and the price is computed from that value. Send them explicitly when you need a specific combination — especially on video models, where duration is the main cost multiplier.
   </Accordion>
 </AccordionGroup>

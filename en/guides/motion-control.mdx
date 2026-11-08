@@ -1,122 +1,179 @@
 ---
-title: "Motion control through the API"
-description: "Move motion from a reference video onto your own character: the two engines available, the rules of each, and how billing works."
-keywords: ["motion control", "motion transfer", "kling motion", "vidgen motion", "reference motion video"]
+title: "Motion control via the API"
+description: "Transfer motion from a reference video onto your character: duration rules, orientation, file limits, and how it is billed."
+keywords: ["motion control", "motion transfer", "kling motion", "reference video", "orientation"]
 ---
 
 Motion control takes the **motion** from a video and applies it to the **character** in your image. The result is a new video: face and style from the image, motion from the video.
 
-Vidgen has two motion-transfer engines and **their rules differ**. Read the table before you pick a `model`.
+Models in this group are marked `capabilities.feature === "motion"` in [`GET /api/v1/models`](/en/api-reference/models). Only one is active right now:
 
-| Aspect | `kling-mc-3-0` / `kling-mc-3-0-pro` | `vg-motion` (Vidgen Motion) |
-| --- | --- | --- |
-| Output duration | Borrowed from the reference video's length, re-measured on the server | **Chosen** by you; this model only offers 15 seconds |
-| Price | Per second, from the measured reference video length | Fixed per duration + resolution combination (`15s` at `480p` or `720p`) |
-| Resolution | 720p | 480p (cheaper) or 720p |
-| Ratio | Follows the image or the video through `parameters.orientation` | `parameters.ratio` like any regular video model (`16:9` / `9:16`) |
-| Required references | Exactly 1 character image + 1 motion video | At least 1 motion video; up to 10 images and 5 videos |
-| `prompt` length | Maximum 2,500 characters | Same rules as the other video models |
-| `parameters.duration` | Ignored | Honored, and must appear in `capabilities.durations` |
+| Field | Value |
+| --- | --- |
+| `id` | `kling-mc-3-0` |
+| `label` | Kling Motion Control 3.0 Standard |
+| `creditsDefault` | 3 (flat) |
+| `priceMatrix` | `{}` — no overrides |
+| `capabilities.resolutions` | `720p` |
+| `capabilities.ratios` | `16:9`, `9:16` (set by `orientation`, not `ratio`) |
+| `capabilities.maxReferenceImages` | 1 |
+| `capabilities.maxReferenceVideos` | 1 |
+| `capabilities.motion` | `{ "minDurationSec": 3, "maxDurationSec": 30 }` |
 
-These numbers are not written by hand: they come from `GET /api/v1/models`. Motion models are marked `capabilities.feature === "motion"`, and `capabilities.motion.durationFromReference` tells you where the duration comes from — `true` (Kling) means the video decides the length, `false` (Vidgen Motion) means you do.
+<Tip>
+  Do not hardcode `kling-mc-3-0`. Filter the catalog with `capabilities.feature === "motion"` so your code keeps working when motion models are added or replaced.
+</Tip>
 
-## The three-file flow
+```js theme={null}
+const { models } = await (await fetch("https://vidgen.id/api/v1/models")).json();
+const motion = models.video.filter((m) => m.capabilities.feature === "motion");
+
+for (const m of motion) {
+  console.log(m.id, m.creditsDefault, m.capabilities.motion);
+}
+```
+
+## Three-step flow
 
 <Steps>
   <Step title="Upload the motion video">
-    Include the target model id so the server applies the correct duration rules and does not trim the video.
+    Include the target model id so the server applies the motion duration rules (3–30 seconds) and does **not** trim the video to 14.5 seconds.
 
 ```bash theme={null}
 curl -X POST https://vidgen.id/api/v1/upload \
-  -H "Authorization: Bearer vg_YOUR_KEY" \
-  -F "file=@movement.mp4" \
-  -F "model=kling-mc-3-0-pro"
+  -H "Authorization: Bearer vg_KEY_KAMU" \
+  -F "file=@motion.mp4" \
+  -F "model=kling-mc-3-0"
 ```
+
+    The response contains `asset.duration`. Keep that number — your output duration will match it (rounded up).
   </Step>
   <Step title="Upload the character image">
-    The photo or illustration you want to animate. A front-facing face gives the most stable results.
+    A photo or illustration you want animated. A front-facing face gives the most stable result. Upload with the same `model`.
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/upload \
+  -H "Authorization: Bearer vg_KEY_KAMU" \
+  -F "file=@character.png" \
+  -F "model=kling-mc-3-0"
+```
   </Step>
-  <Step title="Send a job with typed references">
-    The order does not determine the role — the `type` field is what tells them apart.
+  <Step title="Send the job with both references">
+    Order does not determine the role — the `type` field does. Exactly one image and one video; more or fewer is answered `400`.
 
 ```json theme={null}
 {
-  "model": "kling-mc-3-0-pro",
+  "model": "kling-mc-3-0",
   "prompt": "",
   "references": [
-    { "id": "ref_api_1762261900_movement.mp4", "type": "video", "url": "/api/media/..." },
-    { "id": "ref_api_1762261901_character.png", "type": "image", "url": "/api/media/..." }
+    { "id": "ref_api_1762261900_motion.mp4", "type": "video", "url": "/api/media/ref_api_1762261900_motion.mp4" },
+    { "id": "ref_api_1762261901_character.png", "type": "image", "url": "/api/media/ref_api_1762261901_character.png" }
   ],
   "parameters": { "orientation": "video" }
 }
 ```
 
-    For `vg-motion`, replace `parameters.orientation` with `duration`, `resolution` and `ratio`, exactly like the other video models:
-
-```json theme={null}
-{
-  "model": "vg-motion",
-  "prompt": "",
-  "references": [
-    { "id": "ref_api_1762261900_movement.mp4", "type": "video", "url": "/api/media/..." },
-    { "id": "ref_api_1762261901_character.png", "type": "image", "url": "/api/media/..." }
-  ],
-  "parameters": { "duration": "15", "resolution": "480p", "ratio": "9:16" }
-}
-```
+    `prompt` may be an empty string: the server fills it with a neutral instruction before forwarding.
   </Step>
 </Steps>
 
-## Kling Motion Control rules
+## Rules enforced by the server
 
-| Aspect | Kling motion control |
+| Aspect | Rule |
 | --- | --- |
-| `prompt` | May be empty. If you leave it empty, the server fills in a neutral instruction automatically. |
-| `parameters.duration` | Ignored. Output duration = length of the reference video, re-measured on the server. |
-| Price | Follows the measured duration of the reference video, not the number you send. |
-| Reference video range | 3–30 seconds, narrowed per model through the catalog when a machine supports less. |
-| `orientation: "image"` | The reference video is trimmed to a maximum of 10 seconds. |
-| `prompt` length | Maximum 2,500 characters. Anything longer is rejected before credits are deducted. |
+| `prompt` | May be empty. Maximum 2,500 characters; longer is rejected `400` before any credit is deducted. |
+| `parameters.duration` | Ignored. The server re-measures the stored reference video and overwrites the value. |
+| Duration rounding | Up (`Math.ceil`). A 10.2 second video counts as 11 seconds. |
+| Reference video range | 3–30 seconds, read from `capabilities.motion`. Outside the range → `400`. |
+| Reference count | Exactly 1 image + 1 video. |
+| `parameters.orientation` | `"image"` or `"video"`. Any other value falls back to `"video"`. |
+| `orientation: "image"` | Reference video maximum 10 seconds. Longer → `400` with a message telling you to switch to `"video"`. |
+| `parameters.ratio` | Does not set the output ratio on motion models; `orientation` does. |
+| Price | 3 credits flat for the model active today. `priceMatrix` is empty, so video length does not change the charge. |
 
-`parameters.orientation` only applies to this model:
+<Warning>
+  Motion control pricing is **not always** flat. Other motion models may fill `priceMatrix` per second. Always compute the estimate from the chosen model's `priceMatrix` + `creditsDefault`, not from the number on this page.
+</Warning>
 
-- `"image"` — the output ratio follows the character image.
-- `"video"` — the output ratio follows the motion video.
+## Why you cannot set the duration yourself
 
-Any other value (or this key sent to a non-motion model) is ignored without an error.
+The server re-measures the video length from the file that is actually stored, then overwrites `parameters.duration` with the result. If the server trusted the client's number, a 30 second video could be reported as 3 seconds and slip past `maxDurationSec`.
+
+That means: if you need a 6 second output, **trim the reference video to 6 seconds before uploading**. Sending `duration: "6"` alongside a 20 second video does not shorten anything.
 
 ## Reference video format
 
-Export **MP4** when you can. WebM is not rejected outright: for motion models the server converts it to MP4 first so the duration can be read. That conversion runs ffmpeg on the server, so a WebM that fails to convert (broken file, a stream with no length metadata) still ends here:
+Export **MP4** when you can. WebM is not rejected outright: for motion models the server converts it to MP4 first so the duration can be read. The conversion uses ffmpeg on the server, so a corrupt file or a stream without length metadata is still answered:
 
-<Warning>
-  `Durasi video referensi tidak bisa dibaca.` (API errors come back in Indonesian.) Transcode it yourself and upload again:
+```json 400 theme={null}
+{
+  "error": "Durasi video referensi tidak bisa dibaca. Unggah ulang videonya (format MP4) sebelum generate."
+}
+```
+
+Transcode it yourself and upload again:
 
 ```bash theme={null}
 ffmpeg -i broken.webm -c:v libx264 -preset veryfast -crf 20 -movflags +faststart out.mp4
 ```
-</Warning>
 
-## Why Kling will not let you set the duration
+Besides duration, the reference video must also meet the general limits: at least 300,000 total pixels and a shortest side of at least 360 px. Full details are in [Reference media](/en/concepts/reference-media).
 
-Kling motion control billing is calculated from the length of the motion video that was actually processed. If the server trusted the client's `duration` value, a 30-second video could be billed as 3 seconds. That is why the duration is re-measured from the stored file and the value you send is overwritten.
+## Complete example: upload to result
 
-In practice: if you need a 6-second output, cut the reference video to 6 seconds before uploading it. `vg-motion` does not work that way — you pick the duration and resolution, and the length of your reference video does not change the price.
+```js motion_control.js theme={null}
+import { readFile } from "node:fs/promises";
 
-## Check-list before you send
+const BASE = "https://vidgen.id/api/v1";
+const headers = { Authorization: `Bearer ${process.env.VIDGEN_API_KEY}` };
+
+async function upload(path, filename, mime, model) {
+  const form = new FormData();
+  form.append("file", new Blob([await readFile(path)], { type: mime }), filename);
+  form.append("model", model);
+  const res = await fetch(`${BASE}/upload`, { method: "POST", headers, body: form });
+  if (!res.ok) throw new Error(`upload ${filename}: ${res.status} ${await res.text()}`);
+  return (await res.json()).asset;
+}
+
+const MODEL = "kling-mc-3-0";
+const motion = await upload("motion.mp4", "motion.mp4", "video/mp4", MODEL);
+const character = await upload("character.png", "character.png", "image/png", MODEL);
+
+const res = await fetch(`${BASE}/generate`, {
+  method: "POST",
+  headers: { ...headers, "Content-Type": "application/json" },
+  body: JSON.stringify({
+    model: MODEL,
+    prompt: "",
+    references: [motion, character],
+    parameters: { orientation: "video" },
+    idempotencyKey: `mc-${character.id}-${motion.id}`,
+  }),
+});
+
+const { job } = await res.json();
+console.log(job.id, job.status, job.creditsCharged);
+// Continue with polling GET /jobs/{id} — see the Node.js guide.
+```
+
+<Note>
+  The `idempotencyKey` in that example is built from both asset ids, so the same reference pair is not charged twice if the request is repeated. Change that pattern if you actually want a different result from the same files.
+</Note>
+
+## Pre-flight checklist
 
 <AccordionGroup>
   <Accordion title="Motion video">
-    Kling: one file only. Vidgen Motion: at least one, up to five. Motion clearly visible, subject stays inside the frame, stable lighting, no text burned into the picture.
+    One MP4 file, 3–30 seconds (maximum 10 seconds when `orientation: "image"`). Clear motion, subject stays in frame, stable lighting, no text burned into the image.
   </Accordion>
   <Accordion title="Character image">
-    Minimum resolution of 300 px on the shortest side, front-facing face, not covered by objects, style consistent with what you want in the final result. Kling accepts exactly one image; Vidgen Motion accepts up to ten.
+    Exactly one image. Shortest side at least 300 px, front-facing face, not covered by objects, style consistent with what you want in the final result.
   </Accordion>
-  <Accordion title="Cost">
-    Check first: `GET /api/v1/user/credits` for the balance. On Kling the reference video's duration determines the bill, so a longer video means more credits. On Vidgen Motion the price comes from `duration` + `resolution` in `priceMatrix`.
+  <Accordion title="Is the model still active?">
+    Fetch `GET /api/v1/models` and make sure your motion id is there. A disabled model is answered `409`, not `400` — do not try another spelling, move to an available model.
+  </Accordion>
+  <Accordion title="Cost and balance">
+    Check `GET /api/v1/user/credits` before sending a batch. Motion control still consumes the daily video quota and is subject to the same concurrency limits as regular generation.
   </Accordion>
 </AccordionGroup>
-
-<Tip>
-  Motion control models can be disabled at any time. If you receive a `409`, do not try other spellings — refetch `GET /api/v1/models` and move the request to an available model.
-</Tip>

@@ -59,6 +59,9 @@ for m in models["video"]:
     <ResponseField name="creditsDefault" type="number" required>
       Harga dasar dalam kredit bila tidak ada override yang cocok. Bisa pecahan.
     </ResponseField>
+    <ResponseField name="unlimitedOnly" type="boolean" required>
+      `true` bila model hanya tersedia untuk pemilik paket Unlimited aktif. Memanggilnya tanpa langganan dijawab `403`, bukan `402`. Jangan menyaring model langganan dari `creditsDefault === 0` — pakai flag ini.
+    </ResponseField>
     <ResponseField name="priceMatrix" type="object">
       Override harga. Kunci yang mungkin: durasi (`"15"`), resolusi (`"720p"`), kombinasi (`"720p:15"`), atau kualitas:resolusi (`"low:2K"`).
     </ResponseField>
@@ -70,7 +73,7 @@ for m in models["video"]:
           Nilai valid untuk `parameters.duration`.
         </ResponseField>
         <ResponseField name="ratios" type="array<string>">
-          Nilai valid untuk `parameters.ratio`.
+          Nilai valid untuk `parameters.ratio`. `auto` selalu diterima dan tidak divalidasi.
         </ResponseField>
         <ResponseField name="resolutions" type="array<string>">
           Nilai valid untuk `parameters.resolution`.
@@ -84,9 +87,39 @@ for m in models["video"]:
         <ResponseField name="maxReferenceAudios" type="number">
           Batas audio referensi.
         </ResponseField>
+        <ResponseField name="minReferenceVideos" type="number">
+          Jumlah video referensi minimum. Hanya muncul bila lebih dari 0; permintaan tanpa video dijawab `400` sebelum kredit terpotong.
+        </ResponseField>
+        <ResponseField name="qualities" type="array<string>">
+          Nilai valid untuk `parameters.quality`. Hanya muncul pada model yang mendukungnya, dan ikut menentukan harga lewat kunci `quality:resolution`.
+        </ResponseField>
+        <ResponseField name="backgrounds" type="array<string>">
+          Nilai valid untuk `parameters.background`, misal `auto`, `opaque`, `transparent`.
+        </ResponseField>
+        <ResponseField name="outputFormats" type="array<string>">
+          Nilai valid untuk `parameters.output_format`, misal `png`, `jpeg`, `webp`.
+        </ResponseField>
+        <ResponseField name="supportsNegativePrompt" type="boolean">
+          Hanya muncul bila `true`. Artinya `parameters.negative_prompt` diteruskan ke generator.
+        </ResponseField>
+        <ResponseField name="supportsSeed" type="boolean">
+          Hanya muncul bila `true`. Artinya `parameters.seed` diteruskan ke generator.
+        </ResponseField>
+        <ResponseField name="feature" type="string">
+          `"create"` atau `"motion"`. Model `motion` mengambil durasi dari video referensi dan mengabaikan `parameters.duration`.
+        </ResponseField>
+        <ResponseField name="motion" type="object">
+          Hanya pada model motion: `minDurationSec`, `maxDurationSec`, dan kadang `durationFromReference`.
+        </ResponseField>
+        <ResponseField name="modes" type="array<string>">
+          Khusus audio: pola penulisan lagu, misal `custom`, `simple`, `cover`.
+        </ResponseField>
+        <ResponseField name="versions" type="array<string>">
+          Khusus audio: versi mesin yang bisa dipilih.
+        </ResponseField>
       </Expandable>
 
-      Sebagian model menambahkan `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, atau `supportsSeed`. Kunci yang tidak ada berarti parameter itu diabaikan.
+      Kunci opsional hanya diterbitkan saat modelnya memang punya. Kunci yang tidak ada berarti parameter itu diabaikan server — tidak error, tidak berpengaruh.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -104,7 +137,8 @@ for m in models["video"]:
         "category": "Video",
         "mode": "video",
         "creditsDefault": 3,
-        "priceMatrix": { "20": 3 },
+        "unlimitedOnly": false,
+        "priceMatrix": { "20": 3, "20s": 3, "20:720p": 3, "20s:720p": 3 },
         "capabilities": {
           "durations": ["20"],
           "ratios": ["16:9", "9:16"],
@@ -113,27 +147,76 @@ for m in models["video"]:
           "maxReferenceVideos": 0,
           "maxReferenceAudios": 0
         }
+      },
+      {
+        "id": "gemini-omni-1.2-unlimited",
+        "label": "Gemini Omni 1.2 Flash (Unlimited)",
+        "category": "Video",
+        "mode": "video",
+        "creditsDefault": 0,
+        "unlimitedOnly": true,
+        "priceMatrix": {},
+        "capabilities": {
+          "durations": ["5", "10"],
+          "ratios": ["16:9", "9:16", "1:1"],
+          "resolutions": ["720p", "1080p"],
+          "maxReferenceImages": 1,
+          "maxReferenceVideos": 1,
+          "maxReferenceAudios": 0,
+          "feature": "create"
+        }
       }
     ],
     "image": [
       {
-        "id": "nano-banana-2.1",
-        "label": "Nano Banana 2.1",
+        "id": "gpt-image-2.6-sunburst",
+        "label": "GPT Image 2.6 Sunburst",
         "category": "Image",
         "mode": "image",
         "creditsDefault": 1,
-        "priceMatrix": { "1K": 1, "2K": 1.5, "4K": 2 },
+        "unlimitedOnly": false,
+        "priceMatrix": {
+          "1K": 2, "2K": 3, "4K": 5,
+          "low:1K": 1, "low:2K": 2, "low:4K": 3,
+          "medium:1K": 2, "medium:2K": 3, "medium:4K": 5,
+          "high:1K": 2, "high:2K": 4, "high:4K": 6,
+          "xhigh:1K": 3, "xhigh:2K": 6, "xhigh:4K": 10,
+          "max:1K": 7, "max:2K": 13, "max:4K": 21
+        },
         "capabilities": {
           "durations": [],
-          "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+          "ratios": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
           "resolutions": ["1K", "2K", "4K"],
-          "maxReferenceImages": 10,
+          "maxReferenceImages": 16,
           "maxReferenceVideos": 0,
-          "maxReferenceAudios": 0
+          "maxReferenceAudios": 0,
+          "qualities": ["low", "medium", "high", "xhigh", "max"],
+          "backgrounds": ["auto", "opaque", "transparent"],
+          "outputFormats": ["png", "jpeg", "webp"]
         }
       }
     ],
-    "audio": []
+    "audio": [
+      {
+        "id": "suno-v6",
+        "label": "Suno V6",
+        "category": "Audio",
+        "mode": "audio",
+        "creditsDefault": 2,
+        "unlimitedOnly": false,
+        "priceMatrix": {},
+        "capabilities": {
+          "durations": [],
+          "ratios": [],
+          "resolutions": [],
+          "maxReferenceImages": 0,
+          "maxReferenceVideos": 0,
+          "maxReferenceAudios": 1,
+          "modes": ["custom", "simple"],
+          "versions": ["V6", "V6 Wild"]
+        }
+      }
+    ]
   }
 }
 ```
@@ -151,12 +234,18 @@ for m in models["video"]:
     Ambil katalog sekali saat layananmu start, simpan 5–15 menit, dan segarkan saat menerima `409` (`model ... sedang tidak tersedia`). Daftar model berubah tanpa pengumuman.
   </Accordion>
   <Accordion title="Bangun UI dari capabilities">
-    Sembunyikan pilihan durasi yang tidak ada di `capabilities.durations` model terpilih. Validasi di sisi kamu sebelum mengirim menghemat kredit pengguna dan memanggang permintaan yang pasti ditolak server.
+    Sembunyikan pilihan yang tidak ada di capabilities model terpilih: `durations`, `ratios`, `resolutions`, lalu `qualities`, `backgrounds`, dan `outputFormats` bila kunci itu ada. Untuk referensi, tampilkan uploader gambar hanya bila `maxReferenceImages > 0`, dan seterusnya untuk video dan audio. Validasi di sisi kamu sebelum mengirim memangkas permintaan yang pasti ditolak server.
   </Accordion>
   <Accordion title="Hitung perkiraan biaya">
-    Tirukan urutan pencarian harga server: `quality:resolution` → `resolution:duration` → `duration` → `resolution` → `creditsDefault`. Lalu tambahkan 0 untuk referensi (belum ada surcharge saat ini).
+    Tirukan urutan pencarian harga server: `quality:resolution` → `resolution:duration` → `duration` → `resolution` → `creditsDefault`. Beberapa model hanya mengisi sebagian kombinasi (matriks jarang); kunci yang tidak ada jatuh ke tingkat berikutnya, bukan ke error. Referensi belum menambah biaya.
+  </Accordion>
+  <Accordion title="Model Unlimited bukan model gratis">
+    `unlimitedOnly: true` berarti model itu hanya untuk pemilik paket Unlimited aktif. `creditsDefault`-nya `0` karena tagihannya masuk kuota, bukan karena gratis untuk semua akun. Tanpa langganan, `POST /api/v1/generate` menjawab `403` dengan `code: "unlimited_required"` sebelum kredit tersentuh. Untuk menampilkan pilihan yang benar ke pengguna biasa, saring `models.video.filter((m) => !m.unlimitedOnly)`.
+  </Accordion>
+  <Accordion title="Gemini Omni 1.1 dan 1.2 berbeda jalur">
+    Keduanya Unlimited, tapi kemampuannya tidak sama: `gemini-omni-1.1-unlimited` menerima sampai 3 gambar dan tanpa video, `gemini-omni-1.2-unlimited` menerima 1 gambar + 1 video (ref-to-video) dan durasi `5` atau `10`. Jangan menyamakan UI keduanya — baca `maxReferenceVideos` dan `durations` masing-masing. Antreannya juga berbeda: lihat [Konkurensi & batas pemakaian](/concepts/concurrency-limits).
   </Accordion>
   <Accordion title="Audio muncul di katalog, tapi belum bisa digenerate">
-    Keranjang `audio` diisi model musik. Pengirimannya melalui API key belum dibuka, jadi tampilkan sebagai "hanya di dashboard".
+    Keranjang `audio` diisi `suno-v6` dan `suno-cover-v6`. Pengirimannya melalui API key belum dibuka, jadi tampilkan sebagai "hanya di dashboard". Kunci `modes` dan `versions` diterbitkan untuk kesiapan integrasi, bukan tanda endpoint sudah aktif.
   </Accordion>
 </AccordionGroup>

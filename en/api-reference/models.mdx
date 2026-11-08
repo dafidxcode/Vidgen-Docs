@@ -59,6 +59,9 @@ for m in models["video"]:
     <ResponseField name="creditsDefault" type="number" required>
       Base price in credits when no override matches. Can be fractional.
     </ResponseField>
+    <ResponseField name="unlimitedOnly" type="boolean" required>
+      `true` when the model is only available to accounts with an active Unlimited plan. Calling it without a subscription is answered `403`, not `402`. Do not filter subscription models by `creditsDefault === 0` — use this flag.
+    </ResponseField>
     <ResponseField name="priceMatrix" type="object">
       Price overrides. Possible keys: duration (`"15"`), resolution (`"720p"`), combination (`"720p:15"`), or quality:resolution (`"low:2K"`).
     </ResponseField>
@@ -70,7 +73,7 @@ for m in models["video"]:
           Valid values for `parameters.duration`.
         </ResponseField>
         <ResponseField name="ratios" type="array<string>">
-          Valid values for `parameters.ratio`.
+          Valid values for `parameters.ratio`. `auto` is always accepted and is not validated.
         </ResponseField>
         <ResponseField name="resolutions" type="array<string>">
           Valid values for `parameters.resolution`.
@@ -84,9 +87,39 @@ for m in models["video"]:
         <ResponseField name="maxReferenceAudios" type="number">
           Reference audio limit.
         </ResponseField>
+        <ResponseField name="minReferenceVideos" type="number">
+          Minimum reference video count. Only emitted when greater than 0; a request without a video is answered `400` before any credit is deducted.
+        </ResponseField>
+        <ResponseField name="qualities" type="array<string>">
+          Valid values for `parameters.quality`. Only emitted on models that support it, and it also drives the price through the `quality:resolution` key.
+        </ResponseField>
+        <ResponseField name="backgrounds" type="array<string>">
+          Valid values for `parameters.background`, e.g. `auto`, `opaque`, `transparent`.
+        </ResponseField>
+        <ResponseField name="outputFormats" type="array<string>">
+          Valid values for `parameters.output_format`, e.g. `png`, `jpeg`, `webp`.
+        </ResponseField>
+        <ResponseField name="supportsNegativePrompt" type="boolean">
+          Only emitted when `true`. Means `parameters.negative_prompt` is forwarded to the generator.
+        </ResponseField>
+        <ResponseField name="supportsSeed" type="boolean">
+          Only emitted when `true`. Means `parameters.seed` is forwarded to the generator.
+        </ResponseField>
+        <ResponseField name="feature" type="string">
+          `"create"` or `"motion"`. Motion models take their duration from the reference video and ignore `parameters.duration`.
+        </ResponseField>
+        <ResponseField name="motion" type="object">
+          Motion models only: `minDurationSec`, `maxDurationSec`, and sometimes `durationFromReference`.
+        </ResponseField>
+        <ResponseField name="modes" type="array<string>">
+          Audio only: songwriting mode, e.g. `custom`, `simple`, `cover`.
+        </ResponseField>
+        <ResponseField name="versions" type="array<string>">
+          Audio only: selectable engine versions.
+        </ResponseField>
       </Expandable>
 
-      Some models add `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, or `supportsSeed`. A missing key means that parameter is ignored.
+      Optional keys are only emitted when the model actually has them. A missing key means that parameter is ignored by the server — no error, no effect.
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -104,7 +137,8 @@ for m in models["video"]:
         "category": "Video",
         "mode": "video",
         "creditsDefault": 3,
-        "priceMatrix": { "20": 3 },
+        "unlimitedOnly": false,
+        "priceMatrix": { "20": 3, "20s": 3, "20:720p": 3, "20s:720p": 3 },
         "capabilities": {
           "durations": ["20"],
           "ratios": ["16:9", "9:16"],
@@ -113,27 +147,76 @@ for m in models["video"]:
           "maxReferenceVideos": 0,
           "maxReferenceAudios": 0
         }
+      },
+      {
+        "id": "gemini-omni-1.2-unlimited",
+        "label": "Gemini Omni 1.2 Flash (Unlimited)",
+        "category": "Video",
+        "mode": "video",
+        "creditsDefault": 0,
+        "unlimitedOnly": true,
+        "priceMatrix": {},
+        "capabilities": {
+          "durations": ["5", "10"],
+          "ratios": ["16:9", "9:16", "1:1"],
+          "resolutions": ["720p", "1080p"],
+          "maxReferenceImages": 1,
+          "maxReferenceVideos": 1,
+          "maxReferenceAudios": 0,
+          "feature": "create"
+        }
       }
     ],
     "image": [
       {
-        "id": "nano-banana-2.1",
-        "label": "Nano Banana 2.1",
+        "id": "gpt-image-2.6-sunburst",
+        "label": "GPT Image 2.6 Sunburst",
         "category": "Image",
         "mode": "image",
         "creditsDefault": 1,
-        "priceMatrix": { "1K": 1, "2K": 1.5, "4K": 2 },
+        "unlimitedOnly": false,
+        "priceMatrix": {
+          "1K": 2, "2K": 3, "4K": 5,
+          "low:1K": 1, "low:2K": 2, "low:4K": 3,
+          "medium:1K": 2, "medium:2K": 3, "medium:4K": 5,
+          "high:1K": 2, "high:2K": 4, "high:4K": 6,
+          "xhigh:1K": 3, "xhigh:2K": 6, "xhigh:4K": 10,
+          "max:1K": 7, "max:2K": 13, "max:4K": 21
+        },
         "capabilities": {
           "durations": [],
-          "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+          "ratios": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
           "resolutions": ["1K", "2K", "4K"],
-          "maxReferenceImages": 10,
+          "maxReferenceImages": 16,
           "maxReferenceVideos": 0,
-          "maxReferenceAudios": 0
+          "maxReferenceAudios": 0,
+          "qualities": ["low", "medium", "high", "xhigh", "max"],
+          "backgrounds": ["auto", "opaque", "transparent"],
+          "outputFormats": ["png", "jpeg", "webp"]
         }
       }
     ],
-    "audio": []
+    "audio": [
+      {
+        "id": "suno-v6",
+        "label": "Suno V6",
+        "category": "Audio",
+        "mode": "audio",
+        "creditsDefault": 2,
+        "unlimitedOnly": false,
+        "priceMatrix": {},
+        "capabilities": {
+          "durations": [],
+          "ratios": [],
+          "resolutions": [],
+          "maxReferenceImages": 0,
+          "maxReferenceVideos": 0,
+          "maxReferenceAudios": 1,
+          "modes": ["custom", "simple"],
+          "versions": ["V6", "V6 Wild"]
+        }
+      }
+    ]
   }
 }
 ```
@@ -151,12 +234,18 @@ for m in models["video"]:
     Fetch the catalog once when your service starts, keep it for 5–15 minutes, and refresh it when you receive a `409` (`model ... sedang tidak tersedia`). The model list changes without announcement.
   </Accordion>
   <Accordion title="Build your UI from capabilities">
-    Hide duration options that are not in `capabilities.durations` for the selected model. Validating on your side before sending saves user credits and avoids requests the server would certainly reject.
+    Hide options that are not in the selected model's capabilities: `durations`, `ratios`, `resolutions`, then `qualities`, `backgrounds`, and `outputFormats` when those keys exist. Show an image uploader only when `maxReferenceImages > 0`, and so on for video and audio. Validating on your side avoids requests the server would certainly reject.
   </Accordion>
   <Accordion title="Estimate the cost">
-    Mirror the server's price lookup order: `quality:resolution` → `resolution:duration` → `duration` → `resolution` → `creditsDefault`. Then add 0 for references (there is no surcharge today).
+    Mirror the server's price lookup order: `quality:resolution` → `resolution:duration` → `duration` → `resolution` → `creditsDefault`. Some models only fill part of the combinations (sparse matrix); a missing key falls through to the next level, not to an error. References add no cost.
+  </Accordion>
+  <Accordion title="Unlimited models are not free models">
+    `unlimitedOnly: true` means the model is only for accounts with an active Unlimited plan. Its `creditsDefault` is `0` because the charge comes out of the quota, not because it is free for everyone. Without a subscription, `POST /api/v1/generate` answers `403` with `code: "unlimited_required"` before any credit is touched. To show the right choices to ordinary users, filter `models.video.filter((m) => !m.unlimitedOnly)`.
+  </Accordion>
+  <Accordion title="Gemini Omni 1.1 and 1.2 use different queues">
+    Both are Unlimited but not identical: `gemini-omni-1.1-unlimited` accepts up to 3 images and no video, `gemini-omni-1.2-unlimited` accepts 1 image + 1 video (ref-to-video) and durations `5` or `10`. Do not reuse one UI for both — read each model's `maxReferenceVideos` and `durations`. Their queues differ too: see [Concurrency & usage limits](/en/concepts/concurrency-limits).
   </Accordion>
   <Accordion title="Audio appears in the catalog but cannot be generated yet">
-    The `audio` bucket is filled with music models. Sending them through an API key is not open yet, so present them as "dashboard only".
+    The `audio` bucket holds `suno-v6` and `suno-cover-v6`. Sending them through an API key is not open yet, so present them as "dashboard only". The `modes` and `versions` keys are published for future integration, not as a sign the endpoint is live.
   </Accordion>
 </AccordionGroup>

@@ -31,6 +31,12 @@ Hanya ditegakkan untuk pemakaian kuota Unlimited. Kalau akunmu membayar per kred
 
 Pola yang benar: jangan kirim sambil berharap. Cek dulu, atau tangani `429` sebagai sinyal penjadwalan ulang.
 
+### Satu model punya antrean tunggal
+
+`gemini-omni-1.2-unlimited` berjalan di antrean **satu job per akun**. Selama satu job model itu masih diproses, job berikutnya menunggu — termasuk job model lain yang memakai jalur yang sama. `gemini-omni-1.1-unlimited` tidak begini: ia memakai antrean paralel, jadi beberapa job bisa berjalan bersamaan.
+
+Konsekuensinya untuk integrator: jangan menganggap dua model Unlimited bisa dikirim serentak. Kalau kamu mengirim 1.2 lalu 1.1, yang kedua bisa menunggu lebih lama dari perkiraan. Tampilkan posisi antrean (`queue.position`) alih-alih spinner tanpa keterangan.
+
 ```js theme={null}
 const { limits } = await (await fetch(`${BASE}/user/credits`, { headers })).json();
 

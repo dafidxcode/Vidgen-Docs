@@ -80,6 +80,52 @@ class Vidgen:
                 return job
             time.sleep(delay)
             delay = min(delay * 1.6, cap)
+
+
+def estimate_credits(model: dict[str, Any], parameters: dict[str, str] | None = None) -> float:
+    """Mirror the server's price lookup before the job is sent.
+
+    quality:resolution -> resolution:duration (both orders) -> duration ->
+    resolution -> creditsDefault. `model` is one entry from api.models().
+    Models flagged `unlimitedOnly` are not handled here: the charge is 0 when
+    the plan is active, and the request is rejected 403 when it is not.
+    """
+    parameters = parameters or {}
+    matrix = model.get("priceMatrix") or {}
+    res = parameters.get("resolution")
+    res_low = res.lower() if res else None
+    dur = parameters.get("duration")
+    dur_keys = [dur.rstrip("sS"), dur.rstrip("sS") + "s"] if dur else []
+    quality = (parameters.get("quality") or "").lower()
+
+    def num(value: Any) -> float | None:
+        return float(value) if isinstance(value, (int, float)) else None
+
+    if quality and res:
+        for key in (f"{quality}:{res}", f"{quality}:{res_low}"):
+            hit = num(matrix.get(key))
+            if hit is not None:
+                return hit
+    if res_low and dur_keys:
+        for key in dur_keys:
+            for combo in (f"{res_low}:{key}", f"{key}:{res_low}",
+                          f"{res_low}:{key.lower()}", f"{key.lower()}:{res_low}"):
+                hit = num(matrix.get(combo))
+                if hit is not None:
+                    return hit
+    for key in dur_keys:
+        hit = num(matrix.get(key))
+        if hit is None:
+            hit = num(matrix.get(key.lower()))
+        if hit is not None:
+            return hit
+    if res:
+        hit = num(matrix.get(res))
+        if hit is None and res_low:
+            hit = num(matrix.get(res_low))
+        if hit is not None:
+            return hit
+    return float(model["creditsDefault"])
 ```
 
 ## Usage
@@ -89,25 +135,38 @@ import uuid
 
 import requests
 
-from vidgen import Vidgen, VidgenError
+from vidgen import Vidgen, VidgenError, estimate_credits
 
 api = Vidgen()
 
-asset = api.upload("karakter.png", model="vg-seedance-2.5")
+MODEL = "seedance-2.5-promo"
+PARAMS = {"duration": "5", "ratio": "16:9", "resolution": "480p"}
+
+model = next((m for m in api.models()["video"] if m["id"] == MODEL), None)
+if model is None:
+    raise SystemExit(f"{MODEL} is not available right now")
+if model["unlimitedOnly"]:
+    raise SystemExit("this model needs an active Unlimited plan")
+
+print("estimated credits:", estimate_credits(model, PARAMS))  # 9.0
+
+asset = api.upload("character.png", model=MODEL)
 
 job = api.generate(
-    "vg-seedance-2.5",
-    prompt="karakter ini melambaikan tangan ke kamera, latar studio lembut",
+    MODEL,
+    prompt="this character waves at the camera, soft studio background",
     references=[asset],
-    parameters={"duration": "15", "ratio": "16:9", "resolution": "720p"},
+    parameters=PARAMS,
     idempotencyKey=f"batch-7-{uuid.uuid4().hex[:12]}",
 )
 
-hasil = api.wait_for_job(job["id"])
+finished = api.wait_for_job(job["id"])
 
-if hasil["status"] == "succeeded":
-    with open(f"hasil-{hasil['id']}.mp4", "wb") as f:
-        f.write(requests.get(hasil["result"]["url"], timeout=300).content)
+if finished["status"] == "succeeded":
+    with open(f"result-{finished['id']}.mp4", "wb") as f:
+        f.write(requests.get(finished["result"]["url"], timeout=300).content)
+else:
+    print(finished["errorMessage"])
 ```
 
 <Warning>
@@ -116,25 +175,58 @@ if hasil["status"] == "succeeded":
 
 ## Batch pattern
 
-```python theme={null}
-def generate_batch(prompts: list[str], model: str) -> list[dict]:
-    sisa = api.credits()["limits"]["dailyVideosRemaining"]
-    aktif = api.credits()["limits"]["currentActiveJobs"]
-    jatah = min(sisa, max(0, api.credits()["limits"]["maxConcurrentJobs"] - aktif))
+Do not guess the duration. Take the first value the model actually supports from the catalog, then compute the allowance from **one** `credits()` call:
 
-    jobs = []
-    for prompt in prompts[:jatah]:
+```python theme={null}
+import time
+
+from vidgen import Vidgen, VidgenError, estimate_credits
+
+
+def generate_batch(api: Vidgen, prompts: list[str], model_id: str) -> list[dict]:
+    model = next((m for m in api.models()["video"] if m["id"] == model_id), None)
+    if model is None:
+        raise ValueError(f"{model_id} is not available right now")
+    if model["unlimitedOnly"]:
+        raise ValueError("Unlimited models are not suitable for a paid batch")
+
+    durations = model["capabilities"]["durations"]
+    resolutions = model["capabilities"]["resolutions"]
+    params: dict[str, str] = {}
+    if durations:
+        params["duration"] = durations[0]
+    if resolutions:
+        params["resolution"] = resolutions[0]
+
+    price = estimate_credits(model, params)
+    account = api.credits()
+    limits = account["limits"]
+    balance = float(account["user"]["credits"])
+
+    slot_allowance = max(0, limits["maxConcurrentJobs"] - limits["currentActiveJobs"])
+    allowance = min(
+        limits["dailyVideosRemaining"],
+        slot_allowance,
+        int(balance // price) if price else len(prompts),
+    )
+
+    jobs: list[dict] = []
+    for prompt in prompts[:allowance]:
         try:
-            jobs.append(api.generate(model, prompt=prompt, parameters={"duration": "5"}))
+            jobs.append(api.generate(model_id, prompt=prompt, parameters=params))
         except VidgenError as err:
-            if err.status in (402, 409):
+            if err.status in (402, 403, 409):
                 break
             if err.status == 429:
                 time.sleep(30)
-            else:
-                raise
+                continue
+            raise
     return jobs
 ```
+
+<Note>
+  `maxConcurrentJobs` is only enforced for accounts with an active Unlimited quota; on pay-per-credit accounts the value is reported but does not block. Limiting yourself with that number is still polite and keeps the shared queue short.
+</Note>
 
 <Tip>
   For async services (FastAPI, Django), call `wait_for_job` in a separate worker, not in the request handler — two hours of polling would exhaust your connections.

@@ -39,13 +39,13 @@ Endpoint ini memakai `multipart/form-data`, bukan JSON.
 curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
   -F "file=@gerakan.mp4" \
-  -F "model=kling-mc-3-0-pro"
+  -F "model=kling-mc-3-0"
 ```
 
 ```js Node.js theme={null}
 const form = new FormData();
 form.append("file", new Blob([bytes], { type: "video/mp4" }), "gerakan.mp4");
-form.append("model", "kling-mc-3-0-pro");
+form.append("model", "kling-mc-3-0");
 
 const { asset } = await (
   await fetch("https://vidgen.id/api/v1/upload", {
@@ -62,7 +62,7 @@ with open("gerakan.mp4", "rb") as f:
         "https://vidgen.id/api/v1/upload",
         headers={"Authorization": f"Bearer {api_key}"},
         files={"file": f},
-        data={"model": "kling-mc-3-0-pro"},
+        data={"model": "kling-mc-3-0"},
         timeout=180,
     )
 

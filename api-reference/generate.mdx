@@ -34,16 +34,16 @@ Membuat satu job generate. Kredit dipotong pada endpoint ini, dan request dijawa
 
   <Expandable title="sifat yang dikenali">
     <ParamField body="duration" type="string">
-      Durasi dalam detik, misal `"5"` atau `"30"`. Akhiran `s` diterima dan dibuang. Divalidasi terhadap `capabilities.durations`. **Diabaikan pada model motion control.**
+      Durasi dalam detik, misal `"5"` atau `"30"`. Akhiran `s` diterima dan dibuang. Divalidasi terhadap `capabilities.durations`. **Diabaikan pada model motion control.** Bila dilewat, server memakai entri pertama `capabilities.durations` — dan harga dihitung dari nilai itu, bukan dari `creditsDefault`.
     </ParamField>
     <ParamField body="resolution" type="string">
-      Resolusi, misal `"720p"`, `"1080p"`, `"1K"`, `"2K"`, `"4K"`. Divalidasi terhadap `capabilities.resolutions`.
+      Resolusi, misal `"720p"`, `"1080p"`, `"1K"`, `"2K"`, `"4K"`. Divalidasi terhadap `capabilities.resolutions`. Bila dilewat, server memakai entri pertama daftar itu.
     </ParamField>
     <ParamField body="ratio" type="string">
       Rasio aspek: `"16:9"`, `"9:16"`, `"1:1"`, `"4:3"`, `"3:4"`, atau `"auto"`. `aspect_ratio` diterima sebagai alias.
     </ParamField>
     <ParamField body="quality" type="string">
-      Untuk model gambar yang punya `capabilities.qualities` (`low`, `medium`, `high`, `max`). Diabaikan bila model tidak mendukung.
+      Untuk model gambar yang punya `capabilities.qualities` (`low`, `medium`, `high`, `xhigh`, `max`). Ikut menentukan harga lewat kunci `quality:resolution`. Diabaikan bila model tidak mendukung.
     </ParamField>
     <ParamField body="background" type="string">
       Untuk model gambar yang punya `capabilities.backgrounds` (`auto`, `transparent`, `opaque`).
@@ -74,7 +74,7 @@ Membuat satu job generate. Kredit dipotong pada endpoint ini, dan request dijawa
       URL media publik (`http` atau `https`) yang akan diunduh server dengan timeout 20 detik. Kegagalan unduhan dijawab `400`.
     </ParamField>
     <ParamField body="type" type="string">
-      `"image"`, `"video"`, atau `"audio"`. Boleh dilewat — server mendeteksi dari isi berkas. Jumlah maksimum per jenis bergantung model (bawaan: 9 gambar / 1 video / 1 audio; model gambar 10 gambar dan tanpa video atau audio).
+      `"image"`, `"video"`, atau `"audio"`. Boleh dilewat — server mendeteksi dari isi berkas. Jumlah maksimum bergantung model dan dibaca dari `capabilities.maxReferenceImages`, `maxReferenceVideos`, dan `maxReferenceAudios`. Nilai `0` berarti model itu menolak jenis referensi tersebut.
     </ParamField>
     <ParamField body="filename" type="string">
       Nama berkas di penyimpanan server. Ikuti persis nilai dari respons upload.
@@ -225,6 +225,14 @@ print(res.status_code, res.json())
 }
 ```
 
+```json 403 — model khusus langganan theme={null}
+{
+  "error": "Model \"Gemini Omni 1.2 Flash (Unlimited)\" hanya tersedia untuk paket Unlimited aktif.",
+  "code": "unlimited_required",
+  "model": "gemini-omni-1.2-unlimited"
+}
+```
+
 ```json 402 — kredit kurang theme={null}
 {
   "error": "Kredit akun tidak mencukupi. Pembuatan ini membutuhkan 10 kredit",
@@ -267,5 +275,11 @@ print(res.status_code, res.json())
   </Accordion>
   <Accordion title="Batas yang membuat request ini ditolak">
     Dua proses bersamaan (khusus akun Unlimited), 50 video sukses per hari, antrean server penuh, atau situs sedang pemeliharaan. Semuanya memakai `429` atau `503`.
+  </Accordion>
+  <Accordion title="Model Unlimited dan kode 403">
+    Model dengan `unlimitedOnly: true` di katalog hanya bisa dipakai akun yang paket Unlimited-nya aktif. Tanpa langganan, endpoint ini menjawab `403` dengan `code: "unlimited_required"` dan `model` berisi id yang diminta. Kredit tidak terpotong. Jangan menyamakan `403` ini dengan `403` di `GET /api/v1/jobs/{id}` (job milik akun lain) — bedakan lewat `code`.
+  </Accordion>
+  <Accordion title="Nilai bawaan duration dan resolution">
+    Bila kamu tidak mengirim `duration` atau `resolution`, server memakai entri pertama daftar di `capabilities` model itu, dan harga dihitung dari nilai tersebut. Kirim eksplisit kalau kamu butuh kombinasi tertentu — terutama pada model video, karena durasi adalah pengali biaya utama.
   </Accordion>
 </AccordionGroup>

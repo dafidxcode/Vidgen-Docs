@@ -39,10 +39,10 @@ export const vidgen = {
   /** Ambil status terbaru; job `processing` ikut di-settle oleh server. */
   job: (id) => call(`/jobs/${id}`).then((r) => r.job),
 
-  /** Unggah referensi dari Buffer/File. Sertakan `model` agar aturan durasinya tepat. */
-  upload: (file, model) => {
+  /** Unggah referensi dari Blob/Buffer. Sertakan `model` agar aturan durasinya tepat. */
+  upload: (file, model, filename = "referensi.bin") => {
     const form = new FormData();
-    form.append("file", file);
+    form.append("file", file, filename);
     if (model) form.append("model", model);
     return call("/upload", { method: "POST", form }).then((r) => r.asset);
   },
@@ -67,43 +67,102 @@ export async function waitForJob(id, { interval = 5_000, cap = 30_000, timeout =
     delay = Math.min(delay * 1.6, cap);
   }
 }
+
+/**
+ * Perkiraan kredit sebelum job dikirim. Meniru urutan pencarian harga server:
+ * quality:resolution -> resolution:duration (dua urutan) -> duration ->
+ * resolution -> creditsDefault. `model` adalah satu entri dari GET /models.
+ */
+export function estimateCredits(model, parameters = {}) {
+  const matrix = model.priceMatrix ?? {};
+  const res = parameters.resolution;
+  const resLow = res?.toLowerCase();
+  const dur = parameters.duration ? String(parameters.duration).replace(/s$/i, "") : undefined;
+  const durKeys = dur ? [dur, `${dur}s`] : [];
+  const quality = parameters.quality?.toLowerCase();
+  const num = (v) => (typeof v === "number" ? v : undefined);
+
+  if (quality && res) {
+    const hit = num(matrix[`${quality}:${res}`]) ?? num(matrix[`${quality}:${resLow}`]);
+    if (hit !== undefined) return hit;
+  }
+  if (resLow && dur) {
+    for (const k of durKeys) {
+      const hit =
+        num(matrix[`${resLow}:${k}`]) ?? num(matrix[`${k}:${resLow}`]) ??
+        num(matrix[`${resLow}:${k.toLowerCase()}`]) ?? num(matrix[`${k.toLowerCase()}:${resLow}`]);
+      if (hit !== undefined) return hit;
+    }
+  }
+  for (const k of durKeys) {
+    const hit = num(matrix[k]) ?? num(matrix[k.toLowerCase()]);
+    if (hit !== undefined) return hit;
+  }
+  if (res) {
+    const hit = num(matrix[res]) ?? num(matrix[resLow]);
+    if (hit !== undefined) return hit;
+  }
+  return model.creditsDefault;
+}
 ```
+
+<Note>
+  `estimateCredits` mengabaikan `unlimitedOnly`. Untuk model berflag itu, tagihan sebenarnya `0` bila paket Unlimited aktif dan request ditolak `403` bila tidak — periksa flag tersebut sebelum memakai angka ini.
+</Note>
 
 ## Pemakaian
 
 ```js theme={null}
-import { vidgen, waitForJob } from "./vidgen.js";
-import { writeFile } from "node:fs/promises";
+import { vidgen, waitForJob, estimateCredits } from "./vidgen.js";
+import { readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 
-const karakter = await vidgen.upload(await fetch("file:///./karakter.png").then((r) => r.blob()), "vg-seedance-2.5");
+const MODEL = "seedance-2.5-promo";
+const PARAMS = { duration: "5", ratio: "16:9", resolution: "480p" };
+
+// Katalog publik: tidak perlu key, tapi klien di atas tetap mengirimnya.
+const catalog = await vidgen.models();
+const model = catalog.video.find((m) => m.id === MODEL);
+if (!model) throw new Error(`${MODEL} sedang tidak tersedia`);
+if (model.unlimitedOnly) throw new Error("model ini butuh paket Unlimited aktif");
+
+console.log("perkiraan kredit:", estimateCredits(model, PARAMS)); // 9
+
+const bytes = await readFile("karakter.png");
+const karakter = await vidgen.upload(new Blob([bytes], { type: "image/png" }), MODEL, "karakter.png");
 
 const job = await vidgen.generate({
-  model: "vg-seedance-2.5",
+  model: MODEL,
   prompt: "karakter ini melambaikan tangan ke kamera, latar studio lembut",
   references: [karakter],
-  parameters: { duration: "15", ratio: "16:9", resolution: "720p" },
-  idempotencyKey: `klien-42-${crypto.randomUUID().slice(0, 8)}`,
+  parameters: PARAMS,
+  idempotencyKey: `klien-42-${randomUUID().slice(0, 8)}`,
 });
 
 const selesai = await waitForJob(job.id);
 
 if (selesai.status === "succeeded") {
-  const bytes = await fetch(selesai.result.url).then((r) => r.arrayBuffer());
-  await writeFile(`hasil-${selesai.id}.mp4`, bytes);
+  const hasil = await fetch(selesai.result.url).then((r) => r.arrayBuffer());
+  await writeFile(`hasil-${selesai.id}.mp4`, hasil);
 } else {
   console.error(selesai.errorMessage, "kredit kembali:", selesai.creditsCharged === 0);
 }
 ```
 
+<Warning>
+  `fetch()` di Node tidak mendukung URL `file://`. Baca berkas dengan `node:fs/promises` lalu bungkus sebagai `Blob` seperti di atas. `crypto.randomUUID()` juga baru menjadi global mulai Node 19 — impor dari `node:crypto` supaya jalan di Node 18.
+</Warning>
+
 ## Menangani error
 
 ```js theme={null}
 try {
-  await vidgen.generate({ model: "vg-seedance-2.5", prompt: "..." });
+  await vidgen.generate({ model: "seedance-2.5-promo", prompt: "..." });
 } catch (err) {
   switch (err.status) {
     case 401: /* key salah atau dicabut — jangan diulang */ throw err;
     case 402: /* saldo habis: err.body.requiredCredits, err.body.currentCredits */ break;
+    case 403: /* err.body.code === "unlimited_required": model kuota, bukan untuk akun ini */ break;
     case 409: /* model nonaktif — ambil ulang katalog */ break;
     case 429: /* kapasitas: tunggu lalu ulangi dengan idempotencyKey yang sama */ break;
     case 503: /* pemeliharaan: tunda job ke periode berikutnya */ break;
@@ -145,6 +204,34 @@ export interface Asset {
   duration?: number | null;
   width?: number | null;
   height?: number | null;
+}
+
+export interface CatalogModel {
+  id: string;
+  label: string;
+  category: "Video" | "Image" | "Audio";
+  mode: "video" | "image" | "audio";
+  creditsDefault: number;
+  unlimitedOnly: boolean;
+  priceMatrix: Record<string, number>;
+  capabilities: {
+    durations: string[];
+    ratios: string[];
+    resolutions: string[];
+    maxReferenceImages: number;
+    maxReferenceVideos: number;
+    maxReferenceAudios: number;
+    minReferenceVideos?: number;
+    qualities?: string[];
+    backgrounds?: string[];
+    outputFormats?: string[];
+    supportsNegativePrompt?: boolean;
+    supportsSeed?: boolean;
+    feature?: "create" | "motion";
+    motion?: { minDurationSec?: number; maxDurationSec?: number; durationFromReference?: boolean };
+    modes?: string[];
+    versions?: string[];
+  };
 }
 ```
 

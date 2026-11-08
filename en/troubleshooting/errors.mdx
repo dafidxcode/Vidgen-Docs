@@ -18,10 +18,13 @@ Every failure uses a `{ "error": "..." }` body. Extra diagnostic fields only app
     | `Parameter tidak valid: ...` | A `duration`/`resolution`/`ratio` value that is not in the model's `capabilities`. The body also sends a `fields` array. |
     | `Maksimal N gambar referensi.` | The reference count exceeds the model's limit. |
     | `Model gambar hanya mendukung referensi gambar (maksimal N gambar).` | Sending video/audio to an image model. |
+    | `Model ini hanya menerima prompt teks; gambar, video, dan audio referensi tidak didukung.` | All three reference limits of that model are `0`, e.g. `seedance-2-5-flash`. |
+    | `Model ini membutuhkan satu gambar karakter bersama video referensi.` | A video with no image was sent to a ref-to-video model. |
+    | `Motion Control butuh 1 gambar karakter dan 1 video referensi gerakan.` | The motion model got a reference count other than exactly one image + one video. |
     | `Gagal mengunduh media referensi dari URL: ... (HTTP ...)` | The server could not fetch the reference URL (403, 404, or timeout). |
     | `Durasi Video referensi (...) di luar batas (2-15 detik).` | The reference is too short or too long for this path. |
     | `Resolusi video ... terlalu kecil untuk video referensi.` | Below 300,000 total pixels or a shortest side < 360 px. |
-    | `Durasi video referensi tidak bisa dibaca. Ekspor videonya sebagai MP4 (bukan WebM) lalu unggah ulang.` | The duration metadata could not be read for a motion model. |
+    | `Durasi video referensi tidak bisa dibaca. Unggah ulang videonya (format MP4) sebelum generate.` | The duration metadata could not be read for a motion model; transcode to MP4 first. |
     | `Permintaan harus berupa multipart/form-data dengan field "file".` | The upload was sent as JSON. |
     | `Field "file" wajib diisi dengan berkas media.` | Wrong form field name. |
     | `Format berkas tidak valid. ...` | The file contents are not JPG/PNG/WebP/MP4/WebM/MP3/WAV. |
@@ -53,11 +56,26 @@ Every failure uses a `{ "error": "..." }` body. Extra diagnostic fields only app
     The solution is to top up, not to retry. Compare `requiredCredits` with the estimated price from the catalog before sending a batch.
   </Accordion>
 
-  <Accordion title="403 — not your job" icon="lock">
+  <Accordion title="403 — access denied" icon="lock">
+    Two different causes. Tell them apart by `code` and the endpoint.
+
+    **Subscription-only model** (`POST /api/v1/generate`)
+
+```json theme={null}
+{
+  "error": "Model \"Gemini Omni 1.2 Flash (Unlimited)\" hanya tersedia untuk paket Unlimited aktif.",
+  "code": "unlimited_required",
+  "model": "gemini-omni-1.2-unlimited"
+}
+```
+    Models with `unlimitedOnly: true` are only for accounts with an active Unlimited plan. No credits are deducted. Filter the catalog with `!m.unlimitedOnly` when your users are not subscribed.
+
+    **Job owned by another account** (`GET /api/v1/jobs/{id}`)
+
 ```json theme={null}
 { "error": "Akses ditolak: Job ini bukan milik akun Anda." }
 ```
-    This happens when `GET /api/v1/jobs/{id}` uses an id belonging to another account — usually a hardcoded id, or the key in use changed. Your own jobs never hit this code.
+    This happens when the job id belongs to another account — usually a hardcoded id, or the key in use changed. Your own jobs never hit this code.
   </Accordion>
 
   <Accordion title="409 — model unavailable" icon="ban">

@@ -16,7 +16,7 @@ References go into the `references` field of the `POST /api/v1/generate` body. T
 curl -X POST https://vidgen.id/api/v1/upload \
   -H "Authorization: Bearer vg_KEY_KAMU" \
   -F "file=@karakter.png" \
-  -F "model=vg-seedance-2.5"
+  -F "model=seedance-2.5-promo"
 ```
 
 ```json theme={null}
@@ -38,7 +38,7 @@ Then paste the whole `asset` object into `references`:
 
 ```json theme={null}
 {
-  "model": "vg-seedance-2.5",
+  "model": "seedance-2.5-promo",
   "prompt": "karakter ini berlari menembus hutan pinus",
   "references": [{ "id": "ref_api_1762261900_karakter.png", "type": "image", "url": "/api/media/..." }]
 }
@@ -85,16 +85,30 @@ Send an object containing `url` and let the server download it:
 
 ## Maximum counts per model
 
-| Model category | Images | Video | Audio |
-| --- | --- | --- | --- |
-| Video | 9 | 1 | 1 |
-| Image | 10 | 0 | 0 |
+The limits **differ per model** and are published in the catalog. This table is only a snapshot as of 8 November 2026; the source of truth remains `capabilities.maxReferenceImages`, `maxReferenceVideos`, and `maxReferenceAudios`.
 
-These are defaults; each model can declare its own limits through `capabilities.maxReferenceImages`, `maxReferenceVideos`, and `maxReferenceAudios` in the catalog. Read them from there, not from this table.
+| Video model | Images | Video | Audio |
+| --- | --- | --- | --- |
+| `seedance-2-5-flash` | 0 | 0 | 0 |
+| `seedance-2.5-promo` | 30 | 1 | 1 |
+| `wan-3.0` | 9 | 3 | 3 |
+| `kling-4.0` | 10 | 5 | 0 |
+| `muse-video` | 4 | 0 | 0 |
+| `minimax-h3` | 9 | 3 | 3 |
+| `gemini-omni-flash-1-1` | 7 | 0 | 0 |
+| `kling-mc-3-0` | 1 | 1 | 0 |
+| `gemini-omni-1.1-unlimited` | 3 | 0 | 0 |
+| `gemini-omni-1.2-unlimited` | 1 | 1 | 0 |
+
+Image models accept **images only**: 16 images for the GPT Image 2.5/2.6 family, 14 for Nano Banana, 10 for Seedream 5.0, and 9 for Wan 2.7 Spicy. Video and audio are always `0`.
 
 <Note>
-  Sending video or audio to an image model is always rejected with `400`, whatever the count.
+  Sending video or audio to an image model is always rejected with `400`, whatever the count. A model with a `0` limit for a kind also rejects that kind — for example `seedance-2-5-flash` rejects every reference because all three limits are `0`.
 </Note>
+
+<Warning>
+  `gemini-omni-1.1-unlimited` and `gemini-omni-1.2-unlimited` behave differently: the first accepts up to 3 images and no video, the second accepts 1 image **or** 1 video together with 1 image. A video without a paired image is rejected.
+</Warning>
 
 ## Practices that prevent failures
 

@@ -16,12 +16,15 @@ Semua kegagalan memakai body `{ "error": "..." }`. Field diagnostik tambahan han
     | `Prompt tidak boleh kosong.` | `prompt` kosong pada model non-motion. |
     | `Model "..." tidak ditemukan.` | Id model salah tulis, atau model sudah dipensiunkan. |
     | `Parameter tidak valid: ...` | Nilai `duration`/`resolution`/`ratio` tidak ada di `capabilities` model. Body ikut mengirim array `fields`. |
-    | `Maksimal N gambar referensi.` | Jumlah referensi melebihi batas model. |
+    | `Maksimal N gambar referensi.` | Jumlah referensi melebihi batas `capabilities` model. |
     | `Model gambar hanya mendukung referensi gambar (maksimal N gambar).` | Kirim video/audio ke model image. |
+    | `Model ini hanya menerima prompt teks; gambar, video, dan audio referensi tidak didukung.` | Ketiga batas referensi model itu `0`, mis. `seedance-2-5-flash`. |
+    | `Model ini membutuhkan satu gambar karakter bersama video referensi.` | Kirim video tanpa gambar ke model ref-to-video. |
+    | `Motion Control butuh 1 gambar karakter dan 1 video referensi gerakan.` | Jumlah referensi pada model motion tidak tepat satu gambar + satu video. |
     | `Gagal mengunduh media referensi dari URL: ... (HTTP ...)` | URL referensi tidak bisa diambil server (403, 404, atau timeout). |
     | `Durasi Video referensi (...) di luar batas (2-15 detik).` | Referensi terlalu pendek atau terlalu panjang untuk jalur ini. |
     | `Resolusi video ... terlalu kecil untuk video referensi.` | Di bawah 300.000 piksel total atau sisi terpendek < 360 px. |
-    | `Durasi video referensi tidak bisa dibaca. Ekspor videonya sebagai MP4 (bukan WebM) lalu unggah ulang.` | Metadata durasi tidak terbaca pada model motion. |
+    | `Durasi video referensi tidak bisa dibaca. Unggah ulang videonya (format MP4) sebelum generate.` | Metadata durasi tidak terbaca pada model motion; transcode ke MP4 lebih dulu. |
     | `Permintaan harus berupa multipart/form-data dengan field "file".` | Upload dikirim sebagai JSON. |
     | `Field "file" wajib diisi dengan berkas media.` | Nama field form salah. |
     | `Format berkas tidak valid. ...` | Isi berkas bukan JPG/PNG/WebP/MP4/WebM/MP3/WAV. |
@@ -53,11 +56,26 @@ Semua kegagalan memakai body `{ "error": "..." }`. Field diagnostik tambahan han
     Solusinya adalah top-up, bukan retry. Bandingkan `requiredCredits` dengan harga perkiraan dari katalog sebelum mengirim batch.
   </Accordion>
 
-  <Accordion title="403 — bukan job-mu" icon="lock">
+  <Accordion title="403 — akses ditolak" icon="lock">
+    Dua sebab berbeda. Bedakan lewat `code` dan endpoint-nya.
+
+    **Model khusus langganan** (`POST /api/v1/generate`)
+
+```json theme={null}
+{
+  "error": "Model \"Gemini Omni 1.2 Flash (Unlimited)\" hanya tersedia untuk paket Unlimited aktif.",
+  "code": "unlimited_required",
+  "model": "gemini-omni-1.2-unlimited"
+}
+```
+    Model ber-`unlimitedOnly: true` hanya untuk akun dengan paket Unlimited aktif. Kredit tidak terpotong. Saring katalog dengan `!m.unlimitedOnly` bila penggunamu belum berlangganan.
+
+    **Job milik akun lain** (`GET /api/v1/jobs/{id}`)
+
 ```json theme={null}
 { "error": "Akses ditolak: Job ini bukan milik akun Anda." }
 ```
-    Terjadi ketika `GET /api/v1/jobs/{id}` memakai id milik akun lain — biasanya karena id dihardcode atau key yang dipakai berganti. Job milik sendiri tidak pernah kena kode ini.
+    Terjadi ketika id job diambil dari akun lain — biasanya karena id dihardcode atau key yang dipakai berganti. Job milik sendiri tidak pernah kena kode ini.
   </Accordion>
 
   <Accordion title="409 — model tidak tersedia" icon="ban">

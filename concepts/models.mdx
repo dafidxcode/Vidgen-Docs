@@ -1,7 +1,7 @@
 ---
 title: "Katalog model"
-description: "Cara membaca daftar model Vidgen dari runtime, apa arti setiap kapabilitas, dan bagaimana id model dicocokkan."
-keywords: ["model vidgen", "katalog model", "seedance", "kling", "parameter yang didukung"]
+description: "Cara membaca daftar model Vidgen dari runtime, apa arti setiap kapabilitas, dan referensi parameter lengkap untuk tiap model video dan gambar."
+keywords: ["model vidgen", "katalog model", "seedance", "kling", "gpt image", "nano banana", "parameter yang didukung"]
 ---
 
 Model Vidgen dikelola dari server dan bisa berubah kapan saja — model baru masuk, model lama dipensiunkan, harga kredit disesuaikan. Karena itu **jangan hardcode daftar model** di produkmu. Ambil dari runtime:
@@ -12,21 +12,34 @@ curl https://vidgen.id/api/v1/models
 
 Endpoint ini publik (tanpa API key) dan mengembalikan tiga keranjang: `video`, `image`, `audio`. Hanya model aktif yang muncul.
 
+Halaman ini adalah referensi lengkap per model per **8 November 2026**. Angkanya berguna untuk membangun UI dan memperkirakan biaya, tetapi `GET /api/v1/models` tetap satu-satunya sumber kebenaran saat kode kamu berjalan.
+
 ## Bentuk satu entri
 
 ```json theme={null}
 {
-  "id": "seedance-2-5-flash",
-  "label": "Seedance 2.5 Flash",
-  "category": "Video",
-  "mode": "video",
-  "creditsDefault": 3,
-  "priceMatrix": { "20": 3 },
+  "id": "gpt-image-2.6-sunburst",
+  "label": "GPT Image 2.6 Sunburst",
+  "category": "Image",
+  "mode": "image",
+  "creditsDefault": 1,
+  "unlimitedOnly": false,
+  "priceMatrix": {
+    "1K": 2, "2K": 3, "4K": 5,
+    "low:1K": 1, "low:2K": 2, "low:4K": 3,
+    "medium:1K": 2, "medium:2K": 3, "medium:4K": 5,
+    "high:1K": 2, "high:2K": 4, "high:4K": 6,
+    "xhigh:1K": 3, "xhigh:2K": 6, "xhigh:4K": 10,
+    "max:1K": 7, "max:2K": 13, "max:4K": 21
+  },
   "capabilities": {
-    "durations": ["20"],
-    "ratios": ["16:9", "9:16"],
-    "resolutions": ["720p"],
-    "maxReferenceImages": 0,
+    "durations": [],
+    "ratios": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+    "resolutions": ["1K", "2K", "4K"],
+    "qualities": ["low", "medium", "high", "xhigh", "max"],
+    "backgrounds": ["auto", "opaque", "transparent"],
+    "outputFormats": ["png", "jpeg", "webp"],
+    "maxReferenceImages": 16,
     "maxReferenceVideos": 0,
     "maxReferenceAudios": 0
   }
@@ -40,14 +53,23 @@ Endpoint ini publik (tanpa API key) dan mengembalikan tiga keranjang: `video`, `
 | `category` | `Video` \| `Image` \| `Audio`. |
 | `mode` | Sama dengan `category` tapi huruf kecil; dipakai untuk memilih tab parameter. |
 | `creditsDefault` | Harga dasar dalam kredit bila tidak ada override yang cocok. |
+| `unlimitedOnly` | `true` bila model hanya bisa dipakai pemilik paket Unlimited aktif. Tanpa langganan, request dijawab `403`. |
 | `priceMatrix` | Override per kunci: `"15"`, `"720p"`, `"720p:15"`, atau `"low:2K"` (kualitas:resolusi). |
 | `capabilities.durations` | Nilai valid untuk `parameters.duration`. |
 | `capabilities.ratios` | Nilai valid untuk `parameters.ratio`. `auto` selalu diterima dan tidak divalidasi. |
 | `capabilities.resolutions` | Nilai valid untuk `parameters.resolution`. |
+| `capabilities.qualities` | Nilai valid untuk `parameters.quality`. Hanya ada pada model gambar tertentu. |
+| `capabilities.backgrounds` | Nilai valid untuk `parameters.background`. |
+| `capabilities.outputFormats` | Nilai valid untuk `parameters.output_format`. |
+| `capabilities.supportsNegativePrompt` | Bila `true`, `parameters.negative_prompt` diteruskan. |
+| `capabilities.supportsSeed` | Bila `true`, `parameters.seed` diteruskan. |
 | `capabilities.maxReferenceImages` / `Videos` / `Audios` | Berapa banyak referensi jenis itu yang boleh dikirim. |
 | `capabilities.minReferenceVideos` | Jumlah video referensi MINIMUM. Kalau ada, permintaan tanpa video dijawab `400` sebelum kredit terpotong. |
+| `capabilities.feature` | `"create"` atau `"motion"`. Model `motion` punya aturan durasi sendiri. |
+| `capabilities.motion` | Rentang durasi referensi (`minDurationSec`, `maxDurationSec`) dan apakah durasi keluaran diambil dari video referensi. |
+| `capabilities.modes` / `versions` | Khusus audio: pola penulisan lagu dan versi mesin. |
 
-Beberapa model juga mengembalikan `qualities`, `backgrounds`, `outputFormats`, `supportsNegativePrompt`, atau `supportsSeed`. Kalau kuncinya tidak ada, parameter tersebut diabaikan server — tidak error, tidak berpengaruh.
+Kunci yang tidak ada berarti parameter tersebut diabaikan server — tidak error, tidak berpengaruh.
 
 ## Parameter yang dimengerti API
 
@@ -58,43 +80,208 @@ Hanya kunci berikut yang dibaca dari objek `parameters`:
 | `duration` | Video | Boleh ditulis `"5"` atau `"5s"`; akhiran `s` dibuang. |
 | `resolution` | Video, Gambar | Tervalidasi terhadap `capabilities.resolutions`. |
 | `ratio` | Video, Gambar | Alias `aspect_ratio` juga diterima. |
-| `quality` | Gambar | Hanya jika model punya `qualities`. |
+| `quality` | Gambar | Hanya jika model punya `qualities`. Ikut menentukan harga. |
 | `background` | Gambar | Hanya jika model punya `backgrounds`. |
 | `output_format` (atau `format`) | Gambar, Audio | Hanya jika model punya `outputFormats`. |
 | `negative_prompt` | Sebagian model | Hanya jika `supportsNegativePrompt`. |
 | `seed` | Sebagian model | Hanya jika `supportsSeed`. |
 | `orientation` | Motion control saja | `image` atau `video`. |
 
-Kunci lain yang kamu kirim (misalnya `style`, `title`, `camera`) **tidak** diproses dan tidak disimpan sebagai error. Validasi dilakukan sebelum job dibuat, jadi typo pada `parameters` diam-diam.
+Kunci lain yang kamu kirim (misalnya `style`, `title`, `camera`) **tidak** diproses dan tidak disimpan sebagai error. Validasi dilakukan sebelum job dibuat, jadi typo pada `parameters` berakibat diam-diam: nilai bawaan yang dipakai.
 
 <Note>
   Kalau kamu butuh parameter yang belum ada, kirim permintaan lewat dukungan. Menambah kunci baru tidak akan merusak integrasi lama.
 </Note>
 
-## Batas ketat per model
+## Model video
 
-Sebagian model hanya menerima sejumlah nilai tertentu. `capabilities` di katalog adalah sumber kebenarannya, tapi tabel berikut adalah batas yang paling sering salah dikirim. Nilai di luar daftar tidak divalidasi oleh API kami sebelum job dibuat — permintaan diteruskan ke generator, job berakhir gagal, dan kredit dikembalikan penuh.
+Sepuluh model video aktif. Kolom referensi ditulis `gambar / video / audio`.
 
-| Model (`id`) | Kategori | Durasi | Resolusi | Referensi |
+| `id` | Label | Durasi (detik) | Resolusi | Rasio | Referensi |
+| --- | --- | --- | --- | --- | --- |
+| `seedance-2-5-flash` | Seedance 2.5 Flash | `20` saja | `720p` | `16:9` `9:16` | 0 / 0 / 0 |
+| `seedance-2.5-promo` | Seedance 2.5 Human Face | `5` `10` `15` `30` | `480p` `720p` | `16:9` `9:16` `4:3` `3:4` `1:1` `21:9` | 30 / 1 / 1 |
+| `wan-3.0` | Wan 3.0 (Uncensored) | `5` `10` `15` `30` | `480p` `720p` | `16:9` `9:16` `1:1` `4:3` `3:4` | 9 / 3 / 3 |
+| `kling-4.0` | Kling 4.0 | `5` `10` `15` `30` | `720p` `1080p` | `16:9` `9:16` `1:1` `21:9` | 10 / 5 / 0 |
+| `muse-video` | Muse Video | `10` `20` `30` `40` `50` `60` | hanya `720p` | `16:9` `9:16` `1:1` `4:3` `3:4` | 4 / 0 / 0 |
+| `minimax-h3` | MiniMax H3 | `5` `10` `15` | hanya `2K` | `1:1` `3:4` `4:3` `9:16` `16:9` `21:9` | 9 / 3 / 3 |
+| `gemini-omni-flash-1-1` | Gemini Omni 1.1 Flash | `10` saja | `720p` `1080p` | `16:9` `9:16` | 7 / 0 / 0 |
+| `kling-mc-3-0` | Kling Motion Control 3.0 Standard | `3`–`30`, dari video referensi | `720p` | `16:9` `9:16` | 1 / 1 / 0 |
+| `gemini-omni-1.1-unlimited` | Gemini Omni 1.1 Flash (Unlimited) | `10` saja | `720p` `1080p` | `16:9` `9:16` `1:1` | 3 / 0 / 0 |
+| `gemini-omni-1.2-unlimited` | Gemini Omni 1.2 Flash (Unlimited) | `5` `10` | `720p` `1080p` | `16:9` `9:16` `1:1` | 1 / 1 / 0 |
+
+### Harga video (kredit)
+
+Harga dicari per kombinasi resolusi:durasi. Angka di bawah adalah isi `priceMatrix` yang sebenarnya.
+
+| `id` | 480p | 720p | 1080p | 2K |
 | --- | --- | --- | --- | --- |
-| `muse-video` | Video | `10` `20` `30` `40` `50` `60` detik | hanya `720p` | 4 gambar |
-| `minimax-h3` | Video | `5` `10` `15` detik | hanya `2K` | 9 gambar, 3 video, 3 audio |
-| `gemini-omni-flash-1-1` | Video | `10` detik saja | `720p`, `1080p` | 7 gambar |
-| `kling-4.0` | Video | `5` `10` `15` `30` detik | `720p`, `1080p` | 10 gambar |
-| `gpt-image-2.6-sunburst`, `gpt-image-2.6-flare` | Image | — | `1K`, `2K`, `4K` | 16 gambar |
-| `gpt-image-2.5-sunburst`, `gpt-image-2.5-flare` | Image | — | `1K`, `2K`, `4K` | lihat katalog |
-| `nano-banana-2-lite` | Image | — | hanya `1K` | 14 gambar |
-| `nano-banana-2`, `nano-banana-2.1` | Image | — | `512px`…`4K` | 14 gambar |
-| `nano-banana-pro` | Image | — | `1K`, `2K`, `4K` | 14 gambar |
-| `seedream-5.0-lite` | Image | — | `2K`, `3K` | 10 gambar |
-| `seedream-5.0-flash`, `seedream-5.0-pro` | Image | — | `1K`, `1.5K`, `2K` | 10 gambar |
-| `wan2.7-image-spicy` | Image | — | `1K`, `2K` | 9 gambar |
-| `wan2.7-image-pro-spicy` | Image | — | `1K`, `2K`, `4K` | 9 gambar |
+| `seedance-2-5-flash` | — | 20s = 3 | — | — |
+| `seedance-2.5-promo` | 5s = 9 · 10s = 18 · 15s = 26 · 30s = 45 | 5s = 18 · 10s = 33 · 15s = 47.5 · 30s = 90 | — | — |
+| `wan-3.0` | 5s = 5 · 10s = 9 · 15s = 14 · 30s = 22 | 5s = 9 · 10s = 14 · 15s = 22 · 30s = 37.5 | — | — |
+| `kling-4.0` | — | 5s = 18 · 10s = 35 · 15s = 50 · 30s = 100 | 5s = 25 · 10s = 50 · 15s = 75 · 30s = 150 | — |
+| `muse-video` | — | 10s = 5 · 20s = 7.5 · 30s = 10 · 40s = 12.5 · 50s = 15 · 60s = 20 | — | — |
+| `minimax-h3` | — | — | — | 5s = 9 · 10s = 15 · 15s = 21 |
+| `gemini-omni-flash-1-1` | — | 10s = 10 | 10s = 15 | — |
+| `kling-mc-3-0` | — | 3 (datar, berapa pun panjang video referensinya) | — | — |
+| `gemini-omni-1.1-unlimited` | — | 0 | 0 | — |
+| `gemini-omni-1.2-unlimited` | — | 0 | 0 | — |
 
-Dua hal yang perlu diperhatikan di atas angka-angka itu:
+<Tip>
+  `muse-video` berharga bertingkat, bukan per detik: 20 detik = 7.5 kredit, bukan 2 × 5. Hitung dari `priceMatrix`, jangan mengalikan durasi dengan tarif dasar.
+</Tip>
 
-- **Kualitas mengubah harga pada model gambar.** Pada `gpt-image-2.6-*`, `quality` ikut menentukan harga lewat kunci `"low:1K"` … `"max:4K"` di `priceMatrix`. Tagihan bisa berbeda belasan kali pada resolusi yang sama, jadi jangan berasumsi `creditsDefault` adalah harga tertinggimu.
-- **Rasio itu terbatas, bukan bebas.** `muse-video` dan `minimax-h3` punya daftar rasio sendiri; `gemini-omni-flash-1-1` hanya `16:9` dan `9:16`. `auto` selalu diterima dan tidak divalidasi.
+### Mode masukan yang dilayani model video
+
+Vidgen menurunkan mode dari referensi yang kamu kirim — kamu tidak menulis `mode` di body. Urutannya:
+
+| Referensi yang dikirim | Mode yang dijalankan |
+| --- | --- |
+| Tidak ada | Text-to-video |
+| Gambar saja | Image-to-video (satu gambar = animasi gambar; beberapa gambar = rangkaian) |
+| Video + gambar | Reference-to-video: video sebagai sumber gerakan, gambar sebagai identitas karakter |
+| Video saja | Ditolak pada keluarga Gemini Omni; model lain memperlakukannya sebagai video referensi |
+
+Dua model punya batas yang lebih ketat dari tabel umum:
+
+- **`gemini-omni-1.1-unlimited`** hanya menerima teks dan gambar. Video referensi ditolak (`maxReferenceVideos: 0`). Sampai tiga gambar boleh dikirim sekaligus.
+- **`gemini-omni-1.2-unlimited`** menerima satu gambar, atau satu video **bersama** satu gambar. Video tanpa gambar pasangan ditolak dengan pesan yang meminta gambar karakter.
+
+## Model Unlimited
+
+Dua model berlabel `(Unlimited)` tidak dijual satuan. Harganya `0` kredit dan `unlimitedOnly: true`.
+
+```json theme={null}
+{
+  "id": "gemini-omni-1.2-unlimited",
+  "label": "Gemini Omni 1.2 Flash (Unlimited)",
+  "creditsDefault": 0,
+  "unlimitedOnly": true,
+  "priceMatrix": {},
+  "capabilities": {
+    "durations": ["5", "10"],
+    "resolutions": ["720p", "1080p"],
+    "ratios": ["16:9", "9:16", "1:1"],
+    "maxReferenceImages": 1,
+    "maxReferenceVideos": 1,
+    "maxReferenceAudios": 0,
+    "feature": "create"
+  }
+}
+```
+
+Aturannya:
+
+- Akun **tanpa** paket Unlimited aktif yang memanggil id ini dijawab `403`, bukan `402`. Kredit tidak terpotong.
+- Akun **dengan** paket aktif membayar 0 kredit, dari dashboard maupun dari API key.
+- Keduanya tetap tunduk pada batas 2 proses bersamaan dan 50 video sukses per hari. Baca [Konkurensi & batas pemakaian](/concepts/concurrency-limits).
+- `gemini-omni-1.2-unlimited` berjalan di antrean tunggal: selama satu job model ini masih diproses, job berikutnya menunggu. `gemini-omni-1.1-unlimited` memakai antrean paralel, jadi beberapa job bisa jalan bersamaan.
+
+```json 403 theme={null}
+{
+  "error": "Model \"Gemini Omni 1.2 Flash (Unlimited)\" hanya tersedia untuk paket Unlimited aktif."
+}
+```
+
+<Warning>
+  Jangan menyaring model Unlimited hanya dari `creditsDefault === 0`. Pakai `unlimitedOnly`. Model promosi lain bisa berharga nol sementara tanpa memerlukan langganan.
+</Warning>
+
+## Model gambar
+
+Empat belas model gambar aktif. Semuanya menerima referensi gambar (image-to-image); tidak ada yang menerima video atau audio.
+
+| `id` | Resolusi | Kualitas | Background | Format | Maks gambar | Rasio |
+| --- | --- | --- | --- | --- | --- | --- |
+| `gpt-image-2.6-sunburst` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | `png` `jpeg` `webp` | 16 | 10 pilihan, tanpa `auto` |
+| `gpt-image-2.6-flare` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | `png` `jpeg` `webp` | 16 | 10 pilihan, tanpa `auto` |
+| `gpt-image-2.5-sunburst` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `transparent` `opaque` | `png` `jpeg` `webp` | 16 | 7 pilihan |
+| `gpt-image-2.5-flare` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `transparent` `opaque` | `png` `jpeg` `webp` | 16 | 7 pilihan |
+| `gpt-image-2.5-sunburst-lite` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | `png` `jpeg` `webp` | 16 | 10 pilihan + `auto` |
+| `gpt-image-2.5-flare-lite` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | `png` `jpeg` `webp` | 16 | 10 pilihan + `auto` |
+| `nano-banana-2.1` | `1K` `2K` `4K` | — | — | `jpeg` `png` | 14 | 10 pilihan |
+| `nano-banana-2` | `512px` `1K` `2K` `4K` | — | — | `png` `jpeg` `webp` | 14 | 10 pilihan |
+| `nano-banana-2-lite` | hanya `1K` | — | — | `png` `jpeg` `webp` | 14 | 10 pilihan |
+| `nano-banana-pro` | `1K` `2K` `4K` | — | — | `png` `jpeg` `webp` | 14 | 10 pilihan |
+| `seedream-5.0-flash` | `1K` `1.5K` `2K` | — | `opaque` `transparent` | `jpeg` `png` | 10 | 8 pilihan |
+| `seedream-5.0-pro` | `1K` `1.5K` `2K` | — | `opaque` `transparent` | `jpeg` `png` | 10 | 8 pilihan |
+| `wan2.7-image-spicy` | `1K` `2K` | — | — | `png` `jpeg` `webp` | 9 | 14 pilihan + `auto` |
+| `wan2.7-image-pro-spicy` | `1K` `2K` `4K` | — | — | `png` `jpeg` `webp` | 9 | 14 pilihan + `auto` |
+
+Daftar rasio lengkap:
+
+- **10 pilihan** (keluarga GPT Image, Nano Banana): `1:1` `2:3` `3:2` `3:4` `4:3` `4:5` `5:4` `9:16` `16:9` `21:9`
+- **7 pilihan** (GPT Image 2.5 non-Lite): `1:1` `3:2` `2:3` `4:3` `3:4` `16:9` `9:16`
+- **8 pilihan** (Seedream): `1:1` `4:3` `3:4` `16:9` `9:16` `2:3` `3:2` `21:9`
+- **14 pilihan** (Wan 2.7 Spicy): 10 pilihan di atas ditambah `1:4` `4:1` `1:8` `8:1`
+
+`auto` selalu diterima server pada model apa pun, tetapi hanya model yang mencantumkannya di `capabilities.ratios` yang benar-benar menuruti rasio gambar masukan. Pada model lain, `auto` berarti kamu menyerahkan pilihan rasio ke generator.
+
+### Harga gambar (kredit)
+
+Pada keluarga GPT Image, **kualitas ikut menentukan harga**. Kunci `priceMatrix`-nya berbentuk `quality:resolution`.
+
+| `id` | `low` | `medium` | `high` | `xhigh` | `max` | Tanpa `quality` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `gpt-image-2.6-sunburst` / `-flare` | 1K=1 · 2K=2 · 4K=3 | 1K=2 · 2K=3 · 4K=5 | 1K=2 · 2K=4 · 4K=6 | 1K=3 · 2K=6 · 4K=10 | 1K=7 · 2K=13 · 4K=21 | 1K=2 · 2K=3 · 4K=5 |
+| `gpt-image-2.5-sunburst` / `-flare` | 1K=1 | 1K=1 | 2K=4 | 1K=3 · 2K=6 · 4K=10 | 4K=21 | 1K=1 · 2K=4 · 4K=10 |
+| `gpt-image-2.5-sunburst-lite` | — | — | — | — | — | 1K=2 · 2K=3 · 4K=5 |
+| `gpt-image-2.5-flare-lite` | — | — | — | — | — | 1K=1 · 2K=2 · 4K=3 |
+
+Kolom kualitas bertanda `—` pada dua varian Lite bukan berarti parameter `quality` ditolak. Modelnya tetap mendeklarasikan `capabilities.qualities`, jadi nilainya diteruskan ke generator dan memengaruhi hasil — hanya saja tidak ada kunci `quality:resolution` di matriksnya, sehingga tagihan tetap mengikuti resolusi.
+
+Model GPT Image 2.5 non-Lite punya matriks yang **jarang**: tidak semua kombinasi kualitas×resolusi punya harga sendiri. Kombinasi yang tidak ada jatuh ke override resolusi tunggal, lalu ke `creditsDefault`. Misalnya `high:4K` tidak ada di matriks, jadi yang dipakai adalah `4K = 10`.
+
+| `id` | 512px | 1K | 1.5K | 2K | 4K |
+| --- | --- | --- | --- | --- | --- |
+| `nano-banana-2.1` | — | 1 | — | 2 | 2 |
+| `nano-banana-2` | 2 | 2 | — | 3 | 3 |
+| `nano-banana-2-lite` | — | 1 | — | — | — |
+| `nano-banana-pro` | — | 3 | — | 4 | 5 |
+| `seedream-5.0-flash` | — | 1 | 1 | 1 | — |
+| `seedream-5.0-pro` | — | 2 | 2 | 3 | — |
+| `wan2.7-image-spicy` | — | 2 | — | 2 | — |
+| `wan2.7-image-pro-spicy` | — | 3 | — | 3 | 3 |
+
+<Warning>
+  Selisih harga kualitas bisa lebih dari sepuluh kali pada resolusi yang sama: `low:1K` = 1 kredit versus `max:4K` = 21 kredit pada GPT Image 2.6. Jangan menampilkan `creditsDefault` sebagai "harga mulai dari" tanpa menyebut kualitasnya, dan jangan mengasumsikan itu plafon biaya.
+</Warning>
+
+### Contoh request gambar lengkap
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/generate \
+  -H "Authorization: Bearer vg_KEY_KAMU" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-image-2.6-sunburst",
+    "prompt": "foto produk sepatu kulit di atas meja marmer, cahaya jendela dari kiri",
+    "parameters": {
+      "resolution": "2K",
+      "ratio": "4:5",
+      "quality": "high",
+      "background": "opaque",
+      "output_format": "webp"
+    },
+    "references": [
+      { "url": "https://cdn.tokokamu.com/sepatu-1.png", "type": "image" },
+      { "url": "https://cdn.tokokamu.com/sepatu-2.png", "type": "image" }
+    ],
+    "idempotencyKey": "sku-8841-front-webp"
+  }'
+```
+
+Tagihan request itu `high:2K` = **4 kredit**, bukan `creditsDefault` 1. Referensi tidak menambah biaya saat ini.
+
+## Urutan pencarian harga
+
+Server meniru urutan ini persis. Tiru di sisi kamu kalau ingin menampilkan perkiraan biaya sebelum mengirim:
+
+```text theme={null}
+quality:resolution  →  resolution:duration  →  duration  →  resolution  →  creditsDefault
+```
+
+Kunci durasi dicoba dalam beberapa ejaan (`"15"`, `"15s"`) dan kunci kombinasi dicoba dalam dua urutan (`"720p:15"` dan `"15:720p"`), jadi kamu tidak perlu menormalkan sendiri. Surcharge referensi saat ini **0** untuk semua jenis dan jumlah referensi.
 
 ## Pencocokan id
 
@@ -104,23 +291,43 @@ Dua hal yang perlu diperhatikan di atas angka-angka itu:
 seedance-2-5-flash  ==  seedance.2.5.flash
 ```
 
-Beberapa id punya alias internal (misalnya `vidgen-1.0`). Rekomendasinya tetap: pakai `id` apa adanya dari respons `GET /api/v1/models`.
+Beberapa id punya alias internal. Rekomendasinya tetap: pakai `id` apa adanya dari respons `GET /api/v1/models`.
 
 Model yang sedang dimatikan **tetap ada** di database supaya riwayat lama punya label, tapi tidak muncul di katalog dan tidak bisa dijalankan. Permintaan ke model nonaktif dijawab `409`.
 
+<Note>
+  Dua model bisa punya nama tampilan yang mirip tetapi id, harga, dan kapabilitas berbeda — misalnya `gemini-omni-flash-1-1` (berbayar, 7 gambar referensi) dan `gemini-omni-1.1-unlimited` (kuota Unlimited, 3 gambar, tanpa video). Selalu pilih berdasarkan `id`, jangan berdasarkan `label`.
+</Note>
+
 ## Model motion control
 
-Model dengan kemampuan transfer gerakan punya aturan sendiri, dan ada dua perilaku durasi yang berbeda:
+Model dengan `capabilities.feature: "motion"` punya aturan sendiri:
 
 - `prompt` boleh kosong — gerakannya datang dari video referensi.
-- **Kling Motion Control** (`kling-mc-3-0`, `kling-mc-3-0-pro`): panjang video referensi menentukan durasi (dan harga) keluaran, bukan angka yang kamu kirim di `parameters.duration`.
-- **Vidgen Motion** (`vg-motion`): durasi diambil dari `parameters.duration` (katalog saat ini hanya 15 detik), dan harga ikut `resolution` (`720p` / `480p`). Video referensi yang lebih panjang dari durasi otomatis dipotong di server.
-- Batas durasi referensi lebih longgar daripada model biasa; lihat [Media referensi](/concepts/reference-media).
+- `parameters.duration` **diabaikan**. Server mengukur panjang video referensi, membulatkannya ke atas, lalu memakai angka itu sebagai durasi keluaran.
+- `parameters.orientation` memilih apakah rasio keluaran mengikuti gambar karakter (`image`) atau video gerakan (`video`).
+- Batas durasi referensi lebih longgar daripada model biasa: 3–30 detik, dan video tidak dipotong otomatis. Lihat [Media referensi](/concepts/reference-media).
 
-<Note>
-  Atribut `capabilities.motion` tidak muncul di `GET /api/v1/models` — yang dikirim hanya `durations`, `ratios`, `resolutions`, dan batas jumlah referensi. Jadi dari API punanya, perilaku "durasi dari video" harus diketahui dari id modelnya, bukan dari katalog. Kalau kamu perlu memfilter secara programatik, tanyakan lewat dukungan sebelum hardcode daftar id.
-</Note>
+Saat ini hanya `kling-mc-3-0` yang aktif di kelompok ini. `capabilities.feature` dan `capabilities.motion` ikut dikirim di katalog, jadi kamu bisa memfilter secara programatik:
+
+```js theme={null}
+const motionModels = models.video.filter((m) => m.capabilities.feature === "motion");
+
+for (const m of motionModels) {
+  const range = m.capabilities.motion; // { minDurationSec: 3, maxDurationSec: 30 }
+  console.log(m.id, range?.minDurationSec, range?.maxDurationSec);
+}
+```
+
+Sebagian model motion menambahkan `durationFromReference` di objek itu. Bila kuncinya tidak ada, perlakukan durasi sebagai berasal dari video referensi — itu perilaku bawaan kelompok motion.
 
 ## Audio
 
-Katalog menyertakan keranjang `audio`, tapi generate audio lewat API key **belum dibuka**. Kirim `mode: "audio"` hari ini akan membuat job yang gagal di tengah jalan dengan pengembalian kredit. Generate audio masih lewat dashboard.
+Katalog menyertakan keranjang `audio` dengan dua model:
+
+| `id` | Label | Kredit | `modes` | `versions` | Referensi audio |
+| --- | --- | --- | --- | --- | --- |
+| `suno-v6` | Suno V6 | 2 | `custom`, `simple` | `V6`, `V6 Wild` | 1 |
+| `suno-cover-v6` | Suno Cover V6 | 4 | `cover` | `V6`, `V6 Wild` | 1 |
+
+Generate audio lewat API key **belum dibuka**. Kirim `mode: "audio"` hari ini akan membuat job yang gagal di tengah jalan dengan pengembalian kredit. Generate audio masih lewat dashboard, jadi tampilkan keranjang ini sebagai "hanya di dashboard" kalau kamu membangun UI dari katalog.
