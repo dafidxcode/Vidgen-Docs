@@ -18,7 +18,7 @@ curl -X POST https://vidgen.id/api/v1/generate \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "seedance-2-5-flash",
+    "model": "wan-3.0",
     "prompt": "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
     "parameters": {
       "duration": "5",
@@ -39,7 +39,7 @@ const res = await fetch("https://vidgen.id/api/v1/generate", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    model: "seedance-2-5-flash",
+    model: "wan-3.0",
     prompt: "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
     parameters: { duration: "5", ratio: "16:9", resolution: "720p" },
   }),
@@ -60,7 +60,7 @@ res = requests.post(
     "https://vidgen.id/api/v1/generate",
     headers={"Authorization": f"Bearer {os.environ['VIDGEN_API_KEY']}"},
     json={
-        "model": "seedance-2-5-flash",
+        "model": "wan-3.0",
         "prompt": "Seekor rubah melintasi salju tipis di pagi buta, kamera steadicam mengikuti dari samping",
         "parameters": {"duration": "5", "ratio": "16:9", "resolution": "720p"},
     },
@@ -84,10 +84,10 @@ print(job["id"], job["status"])
   "job": {
     "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
     "status": "queued",
-    "model": "seedance-2-5-flash",
+    "model": "wan-3.0",
     "category": "Video",
     "prompt": "Seekor rubah melintasi salju tipis di pagi buta...",
-    "creditsCharged": 3,
+    "creditsCharged": 9,
     "createdAt": "2026-11-04T09:12:44.000Z"
   },
   "queue": {
@@ -118,7 +118,7 @@ curl https://vidgen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
   "job": {
     "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
     "status": "succeeded",
-    "model": "seedance-2-5-flash",
+    "model": "wan-3.0",
     "category": "Video",
     "queuePosition": null,
     "result": {
@@ -128,7 +128,7 @@ curl https://vidgen.id/api/v1/jobs/9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b \
       "height": 720
     },
     "errorMessage": null,
-    "creditsCharged": 3,
+    "creditsCharged": 9,
     "createdAt": "2026-11-04T09:12:44.000Z",
     "updatedAt": "2026-11-04T09:15:02.000Z"
   }

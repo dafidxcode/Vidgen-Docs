@@ -46,7 +46,11 @@ keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
   </Accordion>
 
   <Accordion title="Berapa lama video selesai?" icon="timer">
-    Umumnya 1-5 menit untuk klip pendek, tetapi sangat bergantung pada antrean. Yang dijamin bukan waktunya, melainkan batas atasnya: 2 jam, setelah itu job ditandai `failed` dan kredit kembali.
+    Umumnya 1-5 menit untuk klip pendek, tetapi sangat bergantung pada antrean. Untuk `gemini-omni-1.2-unlimited`, tambahkan sekitar 1-3 menit karena watermark dihapus otomatis sebelum hasil diterbitkan; bila pembersihan gagal sementara, sistem mencoba sekali lagi sehingga total bisa lebih lama. Yang dijamin bukan waktunya, melainkan batas atasnya: 2 jam, setelah itu job ditandai `failed` dan kredit kembali.
+  </Accordion>
+
+  <Accordion title="Apakah hasil Gemini Omni 1.2 Flash masih berwatermark?" icon="sparkles">
+    Tidak. Video dari `gemini-omni-1.2-unlimited` dibersihkan otomatis sebelum job berubah menjadi `succeeded`. Tidak ada biaya kredit tambahan dan tidak ada parameter yang perlu dikirim. Bila pembersihan tetap gagal setelah satu percobaan ulang (jarang), video asli diterbitkan dan job tetap `succeeded`. Model lain tidak melalui proses ini.
   </Accordion>
 
   <Accordion title="Bisa naikkan batas konkurensi?" icon="trending-up">

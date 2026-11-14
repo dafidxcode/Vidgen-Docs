@@ -46,7 +46,11 @@ keywords: ["faq", "troubleshooting", "cors", "webhook", "sdk"]
   </Accordion>
 
   <Accordion title="How long does a video take?" icon="timer">
-    Usually 1-5 minutes for short clips, but it depends heavily on the queue. What is guaranteed is not the time but the upper bound: 2 hours, after which the job is marked `failed` and the credits come back.
+    Usually 1-5 minutes for short clips, but it depends heavily on the queue. For `gemini-omni-1.2-unlimited`, add roughly 1-3 minutes because the watermark is removed automatically before the result is published; if cleaning fails transiently, the system retries once, so the total can be longer. What is guaranteed is not the time but the upper bound: 2 hours, after which the job is marked `failed` and the credits come back.
+  </Accordion>
+
+  <Accordion title="Do Gemini Omni 1.2 Flash results still have a watermark?" icon="sparkles">
+    No. Videos from `gemini-omni-1.2-unlimited` are cleaned automatically before the job turns `succeeded`. There is no extra credit charge and no parameter to send. If cleaning still fails after one retry (rare), the original video is published and the job still ends `succeeded`. Other models do not go through this step.
   </Accordion>
 
   <Accordion title="Can I raise the concurrency limit?" icon="trending-up">

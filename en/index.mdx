@@ -27,7 +27,7 @@ The Vidgen API is **asynchronous**. A `POST /api/v1/generate` request is answere
 
 <Steps>
   <Step title="Send a prompt + model">
-    Pick a model from the catalog (for example `seedance-2-5-flash`), write your prompt, and set duration/ratio/resolution in `parameters`.
+    Pick a model from the catalog (for example `wan-3.0`), write your prompt, and set duration/ratio/resolution in `parameters`.
   </Step>
   <Step title="The server queues the job">
     Credits are deducted up front, the job enters the queue, and you receive `job.id` along with your queue position.
@@ -53,7 +53,7 @@ curl -X POST https://vidgen.id/api/v1/generate \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "seedance-2-5-flash",
+    "model": "wan-3.0",
     "prompt": "Kopi susu di meja kayu, cahaya pagi menembus jendela, kamera bergerak pelan ke kanan",
     "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" }
   }'

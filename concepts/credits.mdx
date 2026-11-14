@@ -61,6 +61,7 @@ Pembelian Unlimited memberi kuota waktu, bukan saldo kredit. Saat aktif, generat
 Ada batasnya:
 
 - Hanya model video/gambar tertentu yang ikut kuota Unlimited. Model lain tetap memotong kredit normal walaupun akunmu Unlimited. Cek eligibility dengan `unlimited.active` di `/api/v1/user/credits`, lalu cocokkan model lewat dashboard.
+- Model andalan paket ini adalah `gemini-omni-1.2-unlimited`. Watermark sparkle Gemini pada hasilnya dihapus otomatis sebelum job berubah menjadi `succeeded`, tanpa biaya kredit tambahan dan tanpa parameter khusus.
 - Maksimal **2 proses bersamaan**. Yang ketiga dijawab `429`.
 - Kuota harian video tetap berlaku (50 video sukses per hari).
 

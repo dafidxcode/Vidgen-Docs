@@ -61,6 +61,7 @@ An Unlimited purchase grants a time-based quota, not a credit balance. While it 
 There are limits:
 
 - Only certain video/image models are covered by the Unlimited quota. Other models still deduct normal credits even on an Unlimited account. Check eligibility with `unlimited.active` from `/api/v1/user/credits`, then match models through the dashboard.
+- The plan's flagship model is `gemini-omni-1.2-unlimited`. Its Gemini sparkle watermark is removed automatically before the job turns `succeeded`, with no extra credit charge and no special parameter.
 - Maximum of **2 concurrent processes**. A third is answered `429`.
 - The daily video quota still applies (50 successful videos per day).
 

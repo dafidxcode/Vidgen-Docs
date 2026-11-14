@@ -18,7 +18,7 @@ Every failure uses a `{ "error": "..." }` body. Extra diagnostic fields only app
     | `Parameter tidak valid: ...` | A `duration`/`resolution`/`ratio` value that is not in the model's `capabilities`. The body also sends a `fields` array. |
     | `Maksimal N gambar referensi.` | The reference count exceeds the model's limit. |
     | `Model gambar hanya mendukung referensi gambar (maksimal N gambar).` | Sending video/audio to an image model. |
-    | `Model ini hanya menerima prompt teks; gambar, video, dan audio referensi tidak didukung.` | All three reference limits of that model are `0`, e.g. `seedance-2-5-flash`. |
+    | `Model ini hanya menerima prompt teks; gambar, video, dan audio referensi tidak didukung.` | All three reference limits of that model are `0`. Check `capabilities` in the catalog. |
     | `Model ini membutuhkan satu gambar karakter bersama video referensi.` | A video with no image was sent to a ref-to-video model. |
     | `Motion Control butuh 1 gambar karakter dan 1 video referensi gerakan.` | The motion model got a reference count other than exactly one image + one video. |
     | `Gagal mengunduh media referensi dari URL: ... (HTTP ...)` | The server could not fetch the reference URL (403, 404, or timeout). |

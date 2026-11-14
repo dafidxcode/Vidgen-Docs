@@ -20,7 +20,7 @@ Membuat satu job generate. Kredit dipotong pada endpoint ini, dan request dijawa
 ### Request body
 
 <ParamField body="model" type="string" required>
-  Id model dari katalog, misalnya `seedance-2-5-flash`. Ejaan dengan titik dan tanda hubung diperlakukan sama. Model yang ada tapi sedang dinonaktifkan dijawab `409`. Seedance 2.5 Flash (`seedance-2-5-flash`) hanya jalan dari teks: tiga batas referensinya `0`, jadi mengirim referensi apa pun ke model ini dijawab `400`.
+  Id model dari katalog, misalnya `muse-video`. Ejaan dengan titik dan tanda hubung diperlakukan sama. Model yang ada tapi sedang dinonaktifkan dijawab `409`. Batas referensi berbeda tiap model; baca `capabilities` dari katalog sebelum mengirim `references`.
 </ParamField>
 
 <ParamField body="prompt" type="string">
@@ -93,7 +93,7 @@ curl -X POST https://vidgen.id/api/v1/generate \
   -H "Authorization: Bearer vg_4b1a82f3c9d0e1f2a3b4c5d6e7f80912" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "seedance-2-5-flash",
+    "model": "muse-video",
     "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
     "parameters": { "duration": "20", "ratio": "16:9", "resolution": "720p" },
     "idempotencyKey": "order-4711-a39f2c7b"
@@ -108,7 +108,7 @@ const res = await fetch("https://vidgen.id/api/v1/generate", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    model: "seedance-2-5-flash",
+    model: "muse-video",
     prompt: "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
     parameters: { duration: "20", ratio: "16:9", resolution: "720p" },
     idempotencyKey: "order-4711-a39f2c7b",
@@ -123,7 +123,7 @@ res = requests.post(
     "https://vidgen.id/api/v1/generate",
     headers={"Authorization": f"Bearer {api_key}"},
     json={
-        "model": "seedance-2-5-flash",
+        "model": "muse-video",
         "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
         "parameters": {"duration": "20", "ratio": "16:9", "resolution": "720p"},
         "idempotencyKey": "order-4711-a39f2c7b",
@@ -197,7 +197,7 @@ print(res.status_code, res.json())
   "job": {
     "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
     "status": "queued",
-    "model": "seedance-2-5-flash",
+    "model": "muse-video",
     "category": "Video",
     "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
     "creditsCharged": 3,
@@ -213,7 +213,7 @@ print(res.status_code, res.json())
   "job": {
     "id": "9f2c1d34-a8b7-4e0f-9a1b-2c3d4e5f6a7b",
     "status": "succeeded",
-    "model": "seedance-2-5-flash",
+    "model": "muse-video",
     "category": "Video",
     "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
     "result": { "url": "https://vidgen.id/api/media-proxy?token=..." },
@@ -251,8 +251,8 @@ print(res.status_code, res.json())
 
 ```json 400 — parameter tidak valid theme={null}
 {
-  "error": "Parameter tidak valid: Durasi 60s tidak didukung Seedance 2.5 Flash. Pilihan: 20s.",
-  "fields": ["Durasi 60s tidak didukung Seedance 2.5 Flash. Pilihan: 20s."]
+  "error": "Parameter tidak valid: Durasi 7s tidak didukung Kling 4.0. Pilihan: 5s, 10s, 15s, 30s.",
+  "fields": ["Durasi 7s tidak didukung Kling 4.0. Pilihan: 5s, 10s, 15s, 30s."]
 }
 ```
 

@@ -27,7 +27,7 @@ Vidgen API bersifat **asinkron**. Sebuah request `POST /api/v1/generate` langsun
 
 <Steps>
   <Step title="Kirim prompt + model">
-    Pilih model dari katalog (contoh: `seedance-2-5-flash`), tulis prompt, atur durasi/rasio/resolusi lewat `parameters`.
+    Pilih model dari katalog (contoh: `wan-3.0`), tulis prompt, atur durasi/rasio/resolusi lewat `parameters`.
   </Step>
   <Step title="Server memasukkan antrean">
     Kredit dipotong di awal, job masuk antrean, dan kamu menerima `job.id` beserta posisi antrean.
@@ -53,7 +53,7 @@ curl -X POST https://vidgen.id/api/v1/generate \
   -H "Authorization: Bearer vg_GANTI_DENGAN_KEY_KAMU" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "seedance-2-5-flash",
+    "model": "wan-3.0",
     "prompt": "Kopi susu di meja kayu, cahaya pagi menembus jendela, kamera bergerak pelan ke kanan",
     "parameters": { "duration": "5", "ratio": "16:9", "resolution": "720p" }
   }'

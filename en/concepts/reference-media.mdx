@@ -7,7 +7,7 @@ keywords: ["image to video", "reference video", "upload api", "reference duratio
 References go into the `references` field of the `POST /api/v1/generate` body. There are two ways to provide them.
 
 <Note>
-  Not every model accepts references. Seedance 2.5 Flash (`seedance-2-5-flash`), for example, only runs from a text prompt - its `maxReferenceImages`, `maxReferenceVideos`, and `maxReferenceAudios` are `0`. Read those numbers from `GET /api/v1/models` instead of hardcoding a list of ids.
+  Not every model accepts references. Each model has its own `maxReferenceImages`, `maxReferenceVideos`, and `maxReferenceAudios` limits — some are `0` for a given kind. Read those numbers from `GET /api/v1/models` instead of hardcoding a list of ids.
 </Note>
 
 ## Method 1 — upload first (recommended)
@@ -89,26 +89,26 @@ The limits **differ per model** and are published in the catalog. This table is 
 
 | Video model | Images | Video | Audio |
 | --- | --- | --- | --- |
-| `seedance-2-5-flash` | 0 | 0 | 0 |
 | `seedance-2.5-promo` | 30 | 1 | 1 |
+| `seedance-2.5-nf` | 6 | 3 | 1 |
 | `wan-3.0` | 9 | 3 | 3 |
 | `kling-4.0` | 10 | 5 | 0 |
 | `muse-video` | 4 | 0 | 0 |
 | `minimax-h3` | 9 | 3 | 3 |
 | `gemini-omni-flash-1-1` | 7 | 0 | 0 |
 | `kling-mc-3-0` | 1 | 1 | 0 |
+| `kling-mc-3-0-pro` | 1 | 1 | 0 |
 | `vg-motion` | 10 | 5 | 0 |
-| `gemini-omni-1.1-unlimited` | 1 | 0 | 0 |
 | `gemini-omni-1.2-unlimited` | 3 | 1 | 0 |
 
 Image models accept **images only**: 16 images for the GPT Image 2.5/2.6 family, 14 for Nano Banana, 10 for Seedream 5.0, and 9 for Wan 2.7 Spicy. Video and audio are always `0`.
 
 <Note>
-  Sending video or audio to an image model is always rejected with `400`, whatever the count. A model with a `0` limit for a kind also rejects that kind — for example `seedance-2-5-flash` rejects every reference because all three limits are `0`.
+  Sending video or audio to an image model is always rejected with `400`, whatever the count. A model with a `0` limit for a kind also rejects that kind.
 </Note>
 
 <Warning>
-  `gemini-omni-1.1-unlimited` and `gemini-omni-1.2-unlimited` behave differently: the first accepts exactly 1 image and no video, the second accepts 1-3 images **or** 1 video together with 1 image. A video without a paired image is rejected.
+  `gemini-omni-1.2-unlimited` accepts 1-3 images **or** 1 video together with 1 image. A video without a paired image is rejected.
 </Warning>
 
 ## Practices that prevent failures

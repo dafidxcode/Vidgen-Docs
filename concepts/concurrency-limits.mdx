@@ -33,11 +33,11 @@ Pola yang benar: jangan kirim sambil berharap. Cek dulu, atau tangani `429` seba
 
 ### Satu model punya antrean tunggal
 
-`gemini-omni-1.2-unlimited` memakai antrean **1-20 job per akun di sisi Vidgen**. Kamu boleh mengirim sampai 20 job; server menyimpannya sebagai `queued` lalu mengirimnya **satu per satu** ke generator. Yang menolak hanya saat antrean sudah 20: `429` dengan pesan `Antrean model ini penuh`. `gemini-omni-1.1-unlimited` dan `seedance-2-5-flash` memakai antrean paralel booster.
+`gemini-omni-1.2-unlimited` memakai antrean **1-20 job per akun di sisi Vidgen**. Kamu boleh mengirim sampai 20 job; server menyimpannya sebagai `queued` lalu mengirimnya **satu per satu** ke generator. Yang menolak hanya saat antrean sudah 20: `429` dengan pesan `Antrean model ini penuh`.
 
-Batas itu **tidak lintas model**: job `gemini-omni-1.1-unlimited` yang sedang berjalan tidak menghalangi submit 1.2, dan sebaliknya. Uji live 8 November 2026 menunjukkan satu job 1.1 dan satu job 1.2 berstatus `processing` bersamaan.
+Batas itu **hanya milik model ini**. Model lain punya antrean sendiri, jadi job 1.2 yang sedang berjalan tidak memblokir submit ke model lain dan sebaliknya.
 
-Konsekuensinya untuk integrator: kamu boleh menjalankan 1.1 dan 1.2 bersamaan. Untuk 1.2, kirim beberapa job sekaligus dan tampilkan posisi antrean (`queue.position`); tidak perlu menunggu satu selesai sebelum mengirim berikutnya.
+Konsekuensinya untuk integrator: kamu tidak perlu menunggu antrean 1.2 kosong sebelum mengirim ke model lain. Untuk 1.2 sendiri, kirim beberapa job sekaligus dan tampilkan posisi antrean (`queue.position`); tidak perlu menunggu satu selesai sebelum mengirim berikutnya.
 
 ```js theme={null}
 const { limits } = await (await fetch(`${BASE}/user/credits`, { headers })).json();

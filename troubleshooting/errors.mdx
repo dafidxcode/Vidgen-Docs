@@ -18,7 +18,7 @@ Semua kegagalan memakai body `{ "error": "..." }`. Field diagnostik tambahan han
     | `Parameter tidak valid: ...` | Nilai `duration`/`resolution`/`ratio` tidak ada di `capabilities` model. Body ikut mengirim array `fields`. |
     | `Maksimal N gambar referensi.` | Jumlah referensi melebihi batas `capabilities` model. |
     | `Model gambar hanya mendukung referensi gambar (maksimal N gambar).` | Kirim video/audio ke model image. |
-    | `Model ini hanya menerima prompt teks; gambar, video, dan audio referensi tidak didukung.` | Ketiga batas referensi model itu `0`, mis. `seedance-2-5-flash`. |
+    | `Model ini hanya menerima prompt teks; gambar, video, dan audio referensi tidak didukung.` | Ketiga batas referensi model itu `0`. Cek `capabilities` di katalog. |
     | `Model ini membutuhkan satu gambar karakter bersama video referensi.` | Kirim video tanpa gambar ke model ref-to-video. |
     | `Motion Control butuh 1 gambar karakter dan 1 video referensi gerakan.` | Jumlah referensi pada model motion tidak tepat satu gambar + satu video. |
     | `Gagal mengunduh media referensi dari URL: ... (HTTP ...)` | URL referensi tidak bisa diambil server (403, 404, atau timeout). |
