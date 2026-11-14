@@ -1,0 +1,95 @@
+---
+title: "Upscale gambar & video"
+description: "Naikkan resolusi gambar sampai 8K dan video sampai 4K dengan harga kredit datar per berkas, plus batas berkas dan aturan penagihannya."
+keywords: ["upscale image", "upscale video", "naikkan resolusi", "vidgen image upscale", "seedance upscaler"]
+---
+
+Upscale menaikkan resolusi berkas yang sudah kamu punya tanpa membuat ulang adegannya. Dua model tersedia di **Vidgen Studio** pada halaman [Upscale](https://vidgen.id/upscale):
+
+| Tab | Nama tampil | ID katalog | Tier | Kredit |
+| --- | --- | --- | --- | --- |
+| Gambar | **Vidgen Image Upscale** | `vg-upscale-image` | 2K · 4K · 8K | 2.5 · 3 · 4 |
+| Video | **Seedance Upscaler** | `vg-upscale-video` | 1080p · 2K · 4K | 5 · 10 · 20 |
+
+Harga **datar per berkas** — tier yang kamu pilih menentukan biaya, bukan ukuran berkas atau panjang prompt. 1 kredit Vidgen = Rp1.000.
+
+<Note>
+  Upscale saat ini tersedia lewat Studio, **belum** diekspos sebagai endpoint di API publik
+  (`/api/v1`). Panduan ini menjelaskan kemampuan dan batasannya supaya integrasi bisa
+  direncanakan; endpoint API akan didokumentasikan di sini saat dirilis.
+</Note>
+
+## Batas berkas
+
+| Aspek | Gambar | Video |
+| --- | --- | --- |
+| Format | PNG, JPEG, WebP | MP4, MOV, WebM |
+| Ukuran maksimal | 20 MB | 100 MB |
+| Tier keluaran | 2K, 4K, 8K | 1080p, 2K, 4K |
+| Batas durasi | — | **15 detik** |
+
+<Warning>
+  Video dibatasi 15 detik karena harganya datar per berkas. Klip yang lebih panjang harus
+  dipotong dulu; server menolak sebelum kredit terpotong.
+</Warning>
+
+## Cara kerja penagihan
+
+<Steps>
+  <Step title="Pilih model dan tier">
+    Pilih tab Gambar atau Video, lalu tier keluaran. Tombol aksi menampilkan biaya kredit
+    yang akan dipotong sebelum kamu mengirim berkas.
+  </Step>
+  <Step title="Unggah dan kirim">
+    Berkas diunggah ke penyimpanan Vidgen lebih dulu, lalu job upscale dibuat. Kredit
+    dipotong pada saat job dikirim, bukan saat kamu membuka halaman.
+  </Step>
+  <Step title="Pantau sampai selesai">
+    Halaman menampilkan progres dan pratinjau. Setelah selesai, tombol **Unduh hasil**
+    menyimpan berkas hasil ke perangkatmu.
+  </Step>
+</Steps>
+
+## Pengembalian kredit
+
+Kalau job gagal (berkas ditolak setelah unggah, upstream menolak nama model, atau tugas
+tidak ditemukan), kredit **dikembalikan otomatis** dengan referensi idempoten. Job yang
+masih berjalan tidak akan menagih dua kali bila tombol dikirim ulang: permintaan memakai
+kunci idempotensi yang sama.
+
+| Kejadian | Kredit |
+| --- | --- |
+| Job selesai | Dipotong sesuai tier |
+| Job gagal / tugas tidak ditemukan | Dikembalikan penuh |
+| Permintaan ganda (klik dua kali / retry) | Hanya satu tagihan |
+
+## Catatan hasil
+
+- Format gambar dipaksa **PNG** agar tombol unduh menyimpan berkas dengan ekstensi yang benar.
+- Video hasil tetap dalam kontainer MP4.
+- Simpan hasil ke perangkat atau pustaka sendiri setelah selesai; berkas sumber di
+  penyimpanan sementara dihapus otomatis setelah 7 hari.
+
+## Kapan sebaiknya upscale dipakai
+
+| Kebutuhan | Saran |
+| --- | --- |
+| Aset lama yang kurang tajam | Upscale gambar 2K — biaya paling rendah |
+| Cetak / banner besar | Upscale gambar 8K |
+| Klip pendek untuk feed | Upscale video 1080p |
+| Master klip pendek | Upscale video 4K |
+
+<AccordionGroup>
+  <Accordion title="Apakah upscale bisa mengubah isi gambar?">
+    Model gambar memulihkan detail dan menajamkan tepi; komposisi tetap mengikuti berkas
+    sumber. Untuk mengubah isi, gunakan generator gambar, bukan upscale.
+  </Accordion>
+  <Accordion title="Kenapa video saya ditolak?">
+    Cek tiga hal: durasi ≤ 15 detik, format MP4/MOV/WebM, dan ukuran ≤ 100 MB. Pesan
+    penolakan muncul sebelum kredit dipotong.
+  </Accordion>
+  <Accordion title="Bisakah memanggil upscale lewat API key?">
+    Belum. Halaman Upscale memakai sesi akun Vidgen. Saat endpoint publik tersedia,
+    dokumentasinya akan ditambahkan ke tab Referensi API.
+  </Accordion>
+</AccordionGroup>

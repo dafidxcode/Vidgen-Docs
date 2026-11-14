@@ -141,7 +141,8 @@
                   "guides/nodejs",
                   "guides/python",
                   "guides/handling-results",
-                  "guides/motion-control"
+                  "guides/motion-control",
+                  "guides/upscale"
                 ]
               }
             ]
@@ -220,7 +221,8 @@
                   "en/guides/nodejs",
                   "en/guides/python",
                   "en/guides/handling-results",
-                  "en/guides/motion-control"
+                  "en/guides/motion-control",
+                  "en/guides/upscale"
                 ]
               }
             ]

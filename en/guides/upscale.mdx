@@ -1,0 +1,95 @@
+---
+title: "Upscale images & video"
+description: "Raise image resolution up to 8K and video up to 4K with flat credit pricing per file, plus file limits and billing rules."
+keywords: ["upscale image", "upscale video", "image upscaler", "vidgen image upscale", "seedance upscaler"]
+---
+
+Upscale raises the resolution of files you already have without regenerating the scene. Two models are available in **Vidgen Studio** on the [Upscale](https://vidgen.id/upscale) page:
+
+| Tab | Display name | Catalog id | Tiers | Credits |
+| --- | --- | --- | --- | --- |
+| Image | **Vidgen Image Upscale** | `vg-upscale-image` | 2K · 4K · 8K | 2.5 · 3 · 4 |
+| Video | **Seedance Upscaler** | `vg-upscale-video` | 1080p · 2K · 4K | 5 · 10 · 20 |
+
+Pricing is **flat per file** — the tier you choose sets the cost, not the file size or prompt length. 1 Vidgen credit = Rp1,000.
+
+<Note>
+  Upscale is currently available through Studio and is **not** exposed as a public API
+  endpoint (`/api/v1`) yet. This guide documents capabilities and limits so integrations
+  can be planned; API endpoints will be documented here once released.
+</Note>
+
+## File limits
+
+| Aspect | Image | Video |
+| --- | --- | --- |
+| Formats | PNG, JPEG, WebP | MP4, MOV, WebM |
+| Max size | 20 MB | 100 MB |
+| Output tiers | 2K, 4K, 8K | 1080p, 2K, 4K |
+| Duration cap | — | **15 seconds** |
+
+<Warning>
+  Video is capped at 15 seconds because pricing is flat per file. Trim longer clips first;
+  the server rejects them before any credits are charged.
+</Warning>
+
+## How billing works
+
+<Steps>
+  <Step title="Pick a model and tier">
+    Choose the Image or Video tab, then the output tier. The action button shows the credit
+    cost before you submit the file.
+  </Step>
+  <Step title="Upload and submit">
+    The file is uploaded to Vidgen storage first, then the upscale job is created. Credits
+    are charged when the job is submitted, not when the page is opened.
+  </Step>
+  <Step title="Track until done">
+    The page shows progress and a preview. When finished, **Download result** saves the
+    output to your device.
+  </Step>
+</Steps>
+
+## Credit refunds
+
+If a job fails (file rejected after upload, upstream rejects the model name, or the task
+cannot be found), credits are **refunded automatically** using an idempotent reference.
+A running job is never charged twice when the button is submitted again: the request uses
+the same idempotency key.
+
+| Event | Credits |
+| --- | --- |
+| Job completes | Charged for the selected tier |
+| Job fails / task missing | Fully refunded |
+| Duplicate request (double click / retry) | Charged once |
+
+## Output notes
+
+- Image output is forced to **PNG** so the download button saves the file with the correct extension.
+- Video output stays in an MP4 container.
+- Save results to your device or library after completion; source files in temporary
+  storage are deleted automatically after 7 days.
+
+## When to use upscale
+
+| Need | Recommendation |
+| --- | --- |
+| Older soft assets | Upscale image to 2K — lowest cost |
+| Large prints / banners | Upscale image to 8K |
+| Short clips for feeds | Upscale video to 1080p |
+| Short master clips | Upscale video to 4K |
+
+<AccordionGroup>
+  <Accordion title="Can upscale change the image content?">
+    The image model restores detail and sharpens edges; composition follows the source
+    file. To change content, use the image generator instead.
+  </Accordion>
+  <Accordion title="Why was my video rejected?">
+    Check three things: duration ≤ 15 seconds, MP4/MOV/WebM format, and size ≤ 100 MB.
+    Rejection messages appear before any credits are charged.
+  </Accordion>
+  <Accordion title="Can I call upscale with an API key?">
+    Not yet. The Upscale page uses a Vidgen account session. Public endpoint
+    documentation will be added to the API Reference tab when available.
+  </Accordion>
+</AccordionGroup>
