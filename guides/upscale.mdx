@@ -8,10 +8,10 @@ Upscale menaikkan resolusi berkas yang sudah kamu punya tanpa membuat ulang adeg
 
 | Tab | Nama tampil | ID katalog | Tier | Kredit |
 | --- | --- | --- | --- | --- |
-| Gambar | **Vidgen Image Upscale** | `vg-upscale-image` | 2K · 4K · 8K | 2.5 · 3 · 4 |
-| Video | **Seedance Upscaler** | `vg-upscale-video` | 1080p · 2K · 4K | 5 · 10 · 20 |
+| Gambar | **Vidgen Image Upscale** | `vg-upscale-image` | 2K · 4K · 8K | 2.5 · 3 · 4 per berkas |
+| Video | **Seedance Upscaler** | `vg-upscale-video` | 720p · 1080p · 2K · 4K | 1.0 · 1.9 · 2.8 · 3.8 per detik |
 
-Harga **datar per berkas** — tier yang kamu pilih menentukan biaya, bukan ukuran berkas atau panjang prompt. 1 kredit Vidgen = Rp1.000.
+Harga gambar **datar per berkas**. Video ditagih **per detik** (dibulatkan ke atas, minimum 3 detik) hingga 60 detik. 1 kredit Vidgen = Rp1.000.
 
 <Note>
   Upscale saat ini tersedia lewat Studio, **belum** diekspos sebagai endpoint di API publik
@@ -25,12 +25,12 @@ Harga **datar per berkas** — tier yang kamu pilih menentukan biaya, bukan ukur
 | --- | --- | --- |
 | Format | PNG, JPEG, WebP | MP4, MOV, WebM |
 | Ukuran maksimal | 20 MB | 100 MB |
-| Tier keluaran | 2K, 4K, 8K | 1080p, 2K, 4K |
-| Batas durasi | — | **15 detik** |
+| Tier keluaran | 2K, 4K, 8K | 720p, 1080p, 2K, 4K |
+| Batas durasi | — | **60 detik** |
 
 <Warning>
-  Video dibatasi 15 detik karena harganya datar per berkas. Klip yang lebih panjang harus
-  dipotong dulu; server menolak sebelum kredit terpotong.
+  Video ditagih per detik: durasi dibulatkan ke atas dan minimal 3 detik. Klip lebih dari
+  60 detik harus dipotong dulu; server menolak sebelum kredit terpotong.
 </Warning>
 
 ## Cara kerja penagihan
@@ -45,8 +45,9 @@ Harga **datar per berkas** — tier yang kamu pilih menentukan biaya, bukan ukur
     dipotong pada saat job dikirim, bukan saat kamu membuka halaman.
   </Step>
   <Step title="Pantau sampai selesai">
-    Halaman menampilkan progres dan pratinjau. Setelah selesai, tombol **Unduh hasil**
-    menyimpan berkas hasil ke perangkatmu.
+    Halaman menampilkan progres dan pratinjau. Untuk video, biaya dihitung otomatis dari
+    durasi × tarif tier. Setelah selesai, tombol **Unduh hasil** menyimpan berkas hasil ke
+    perangkatmu.
   </Step>
 </Steps>
 
@@ -85,7 +86,7 @@ kunci idempotensi yang sama.
     sumber. Untuk mengubah isi, gunakan generator gambar, bukan upscale.
   </Accordion>
   <Accordion title="Kenapa video saya ditolak?">
-    Cek tiga hal: durasi ≤ 15 detik, format MP4/MOV/WebM, dan ukuran ≤ 100 MB. Pesan
+    Cek tiga hal: durasi ≤ 60 detik, format MP4/MOV/WebM, dan ukuran ≤ 100 MB. Pesan
     penolakan muncul sebelum kredit dipotong.
   </Accordion>
   <Accordion title="Bisakah memanggil upscale lewat API key?">

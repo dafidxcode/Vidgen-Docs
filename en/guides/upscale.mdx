@@ -8,10 +8,10 @@ Upscale raises the resolution of files you already have without regenerating the
 
 | Tab | Display name | Catalog id | Tiers | Credits |
 | --- | --- | --- | --- | --- |
-| Image | **Vidgen Image Upscale** | `vg-upscale-image` | 2K · 4K · 8K | 2.5 · 3 · 4 |
-| Video | **Seedance Upscaler** | `vg-upscale-video` | 1080p · 2K · 4K | 5 · 10 · 20 |
+| Image | **Vidgen Image Upscale** | `vg-upscale-image` | 2K · 4K · 8K | 2.5 · 3 · 4 per file |
+| Video | **Seedance Upscaler** | `vg-upscale-video` | 720p · 1080p · 2K · 4K | 1.0 · 1.9 · 2.8 · 3.8 per second |
 
-Pricing is **flat per file** — the tier you choose sets the cost, not the file size or prompt length. 1 Vidgen credit = Rp1,000.
+Image pricing is **flat per file**. Video is billed **per second** (rounded up, minimum 3 seconds) up to 60 seconds. 1 Vidgen credit = Rp1,000.
 
 <Note>
   Upscale is currently available through Studio and is **not** exposed as a public API
@@ -25,12 +25,13 @@ Pricing is **flat per file** — the tier you choose sets the cost, not the file
 | --- | --- | --- |
 | Formats | PNG, JPEG, WebP | MP4, MOV, WebM |
 | Max size | 20 MB | 100 MB |
-| Output tiers | 2K, 4K, 8K | 1080p, 2K, 4K |
-| Duration cap | — | **15 seconds** |
+| Output tiers | 2K, 4K, 8K | 720p, 1080p, 2K, 4K |
+| Duration cap | — | **60 seconds** |
 
 <Warning>
-  Video is capped at 15 seconds because pricing is flat per file. Trim longer clips first;
-  the server rejects them before any credits are charged.
+  Video is billed per second: duration is rounded up and billed for at least 3 seconds.
+  Clips longer than 60 seconds must be trimmed first; the server rejects them before any
+  credits are charged.
 </Warning>
 
 ## How billing works
@@ -45,8 +46,9 @@ Pricing is **flat per file** — the tier you choose sets the cost, not the file
     are charged when the job is submitted, not when the page is opened.
   </Step>
   <Step title="Track until done">
-    The page shows progress and a preview. When finished, **Download result** saves the
-    output to your device.
+    The page shows progress and a preview. For video, cost is calculated automatically
+    from duration × tier rate. When finished, **Download result** saves the output to your
+    device.
   </Step>
 </Steps>
 
@@ -85,7 +87,7 @@ the same idempotency key.
     file. To change content, use the image generator instead.
   </Accordion>
   <Accordion title="Why was my video rejected?">
-    Check three things: duration ≤ 15 seconds, MP4/MOV/WebM format, and size ≤ 100 MB.
+    Check three things: duration ≤ 60 seconds, MP4/MOV/WebM format, and size ≤ 100 MB.
     Rejection messages appear before any credits are charged.
   </Accordion>
   <Accordion title="Can I call upscale with an API key?">
