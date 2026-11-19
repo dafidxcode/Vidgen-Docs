@@ -59,7 +59,7 @@
                 "video-dari-teks": {
                   "summary": "Video 20 detik dari teks",
                   "value": {
-                    "model": "seedance-2-5-flash",
+                    "model": "muse-video",
                     "prompt": "secangkir kopi di meja kayu, cahaya pagi, kamera dolly perlahan ke kanan",
                     "parameters": { "duration": "20", "ratio": "16:9", "resolution": "720p" },
                     "idempotencyKey": "order-4711-a39f2c7b"
@@ -470,7 +470,7 @@
           "model": {
             "type": "string",
             "description": "Id dari `GET /api/v1/models`. Titik dan tanda hubung diperlakukan sama.",
-            "example": "seedance-2-5-flash"
+            "example": "muse-video"
           },
           "prompt": {
             "type": "string",

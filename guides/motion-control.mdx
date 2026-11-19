@@ -6,14 +6,14 @@ keywords: ["motion control", "transfer gerakan", "kling motion", "video referens
 
 Motion control mengambil **gerakan** dari sebuah video dan menerapkannya ke **karakter** pada gambar kamu. Hasilnya video baru: wajah dan gaya dari gambar, gerakan dari video.
 
-Model kelompok ini ditandai `capabilities.feature === "motion"` di [`GET /api/v1/models`](/api-reference/models). Dua yang aktif: `kling-mc-3-0` (durasi dari video) dan `vg-motion` (durasi 15 detik, sampai 10 gambar + 5 video referensi). Contoh di bawah memakai `kling-mc-3-0`:
+Model kelompok ini ditandai `capabilities.feature === "motion"` di [`GET /api/v1/models`](/api-reference/models). Tiga yang aktif: `kling-mc-3-0` dan `kling-mc-3-0-pro` (durasi dari video), serta `vg-motion` (durasi 15 detik, sampai 10 gambar + 5 video referensi). Contoh di bawah memakai `kling-mc-3-0`:
 
 | Field | Nilai |
 | --- | --- |
 | `id` | `kling-mc-3-0` |
 | `label` | Kling Motion Control 3.0 Standard |
-| `creditsDefault` | 3 (datar) |
-| `priceMatrix` | `{}` — tidak ada override |
+| `creditsDefault` | 3 (per detik: 3 kredit/detik) |
+| `priceMatrix` | Per detik, `"3"` … `"30"` (3s = 3 … 30s = 30) |
 | `capabilities.resolutions` | `720p` |
 | `capabilities.ratios` | `16:9`, `9:16` (ditentukan `orientation`, bukan `ratio`) |
 | `capabilities.maxReferenceImages` | 1 |
@@ -89,10 +89,10 @@ curl -X POST https://vidgen.id/api/v1/upload \
 | `parameters.orientation` | `"image"` atau `"video"`. Nilai lain jatuh ke `"video"`. |
 | `orientation: "image"` | Video referensi maksimal 10 detik. Lebih panjang → `400` dengan pesan menyuruh pindah ke `"video"`. |
 | `parameters.ratio` | Tidak menentukan rasio keluaran di model motion; `orientation` yang menentukan. |
-| Harga | 3 kredit datar untuk model yang aktif sekarang. `priceMatrix` kosong, jadi panjang video tidak mengubah tagihan. |
+| Harga | Ditagih per detik dari durasi video referensi. `kling-mc-3-0` = 3 kredit/detik; `kling-mc-3-0-pro` = 2 kredit/detik. |
 
 <Warning>
-  Harga motion control **tidak selalu** datar. Model motion lain bisa mengisi `priceMatrix` per detik. Selalu hitung perkiraan biaya dari `priceMatrix` + `creditsDefault` model yang kamu pilih, jangan dari angka di halaman ini.
+  Selalu hitung perkiraan biaya dari `priceMatrix` + `creditsDefault` model yang kamu pilih, jangan dari angka di halaman ini. Video referensi 10,2 detik dibulatkan ke 11 detik, jadi tagihannya 11 × tarif per detik.
 </Warning>
 
 ## Kenapa durasi tidak bisa kamu tentukan sendiri

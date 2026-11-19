@@ -6,14 +6,14 @@ keywords: ["motion control", "motion transfer", "kling motion", "reference video
 
 Motion control takes the **motion** from a video and applies it to the **character** in your image. The result is a new video: face and style from the image, motion from the video.
 
-Models in this group are marked `capabilities.feature === "motion"` in [`GET /api/v1/models`](/en/api-reference/models). Two are active: `kling-mc-3-0` (duration from the video) and `vg-motion` (15 second duration, up to 10 images + 5 reference videos). The example below uses `kling-mc-3-0`:
+Models in this group are marked `capabilities.feature === "motion"` in [`GET /api/v1/models`](/en/api-reference/models). Three are active: `kling-mc-3-0` and `kling-mc-3-0-pro` (duration from the video), plus `vg-motion` (15 second duration, up to 10 images + 5 reference videos). The example below uses `kling-mc-3-0`:
 
 | Field | Value |
 | --- | --- |
 | `id` | `kling-mc-3-0` |
 | `label` | Kling Motion Control 3.0 Standard |
-| `creditsDefault` | 3 (flat) |
-| `priceMatrix` | `{}` — no overrides |
+| `creditsDefault` | 3 (per second: 3 credits/second) |
+| `priceMatrix` | Per second, `"3"` … `"30"` (3s = 3 … 30s = 30) |
 | `capabilities.resolutions` | `720p` |
 | `capabilities.ratios` | `16:9`, `9:16` (set by `orientation`, not `ratio`) |
 | `capabilities.maxReferenceImages` | 1 |
@@ -89,10 +89,10 @@ curl -X POST https://vidgen.id/api/v1/upload \
 | `parameters.orientation` | `"image"` or `"video"`. Any other value falls back to `"video"`. |
 | `orientation: "image"` | Reference video maximum 10 seconds. Longer → `400` with a message telling you to switch to `"video"`. |
 | `parameters.ratio` | Does not set the output ratio on motion models; `orientation` does. |
-| Price | 3 credits flat for the model active today. `priceMatrix` is empty, so video length does not change the charge. |
+| Price | Billed per second from the reference video duration. `kling-mc-3-0` = 3 credits/second; `kling-mc-3-0-pro` = 2 credits/second. |
 
 <Warning>
-  Motion control pricing is **not always** flat. Other motion models may fill `priceMatrix` per second. Always compute the estimate from the chosen model's `priceMatrix` + `creditsDefault`, not from the number on this page.
+  Always compute the estimate from the chosen model's `priceMatrix` + `creditsDefault`, not from the number on this page. A 10.2 second reference video is rounded up to 11 seconds, so the charge is 11 × the per-second rate.
 </Warning>
 
 ## Why you cannot set the duration yourself

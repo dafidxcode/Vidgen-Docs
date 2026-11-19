@@ -1,7 +1,7 @@
 ---
 title: "Katalog model"
 description: "Cara membaca daftar model Vidgen dari runtime, apa arti setiap kapabilitas, dan referensi parameter lengkap untuk tiap model video dan gambar."
-keywords: ["model vidgen", "katalog model", "seedance", "kling", "gpt image", "nano banana", "parameter yang didukung"]
+keywords: ["model vidgen", "katalog model", "seedance", "kling", "gpt image", "nano banana", "qwen image", "vidgen image", "parameter yang didukung"]
 ---
 
 Model Vidgen dikelola dari server dan bisa berubah kapan saja — model baru masuk, model lama dipensiunkan, harga kredit disesuaikan. Karena itu **jangan hardcode daftar model** di produkmu. Ambil dari runtime:
@@ -12,7 +12,7 @@ curl https://vidgen.id/api/v1/models
 
 Endpoint ini publik (tanpa API key) dan mengembalikan tiga keranjang: `video`, `image`, `audio`. Hanya model aktif yang muncul.
 
-Halaman ini adalah referensi lengkap per model per **8 November 2026**. Angkanya berguna untuk membangun UI dan memperkirakan biaya, tetapi `GET /api/v1/models` tetap satu-satunya sumber kebenaran saat kode kamu berjalan.
+Halaman ini adalah referensi lengkap per model per **19 November 2026**. Angkanya berguna untuk membangun UI dan memperkirakan biaya, tetapi `GET /api/v1/models` tetap satu-satunya sumber kebenaran saat kode kamu berjalan.
 
 ## Bentuk satu entri
 
@@ -22,16 +22,9 @@ Halaman ini adalah referensi lengkap per model per **8 November 2026**. Angkanya
   "label": "GPT Image 2.6 Sunburst",
   "category": "Image",
   "mode": "image",
-  "creditsDefault": 1,
+  "creditsDefault": 0.6,
   "unlimitedOnly": false,
-  "priceMatrix": {
-    "1K": 2, "2K": 3, "4K": 5,
-    "low:1K": 1, "low:2K": 2, "low:4K": 3,
-    "medium:1K": 2, "medium:2K": 3, "medium:4K": 5,
-    "high:1K": 2, "high:2K": 4, "high:4K": 6,
-    "xhigh:1K": 3, "xhigh:2K": 6, "xhigh:4K": 10,
-    "max:1K": 7, "max:2K": 13, "max:4K": 21
-  },
+  "priceMatrix": { "1K": 0.6, "2K": 0.8, "4K": 1.1 },
   "capabilities": {
     "durations": [],
     "ratios": ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
@@ -80,7 +73,7 @@ Hanya kunci berikut yang dibaca dari objek `parameters`:
 | `duration` | Video | Boleh ditulis `"5"` atau `"5s"`; akhiran `s` dibuang. |
 | `resolution` | Video, Gambar | Tervalidasi terhadap `capabilities.resolutions`. |
 | `ratio` | Video, Gambar | Alias `aspect_ratio` juga diterima. |
-| `quality` | Gambar | Hanya jika model punya `qualities`. Ikut menentukan harga. |
+| `quality` | Gambar | Hanya jika model punya `qualities`. Diteruskan ke generator; saat ini tidak mengubah harga karena semua model aktif dihargai per resolusi. |
 | `background` | Gambar | Hanya jika model punya `backgrounds`. |
 | `output_format` (atau `format`) | Gambar, Audio | Hanya jika model punya `outputFormats`. |
 | `negative_prompt` | Sebagian model | Hanya jika `supportsNegativePrompt`. |
@@ -95,20 +88,24 @@ Kunci lain yang kamu kirim (misalnya `style`, `title`, `camera`) **tidak** dipro
 
 ## Model video
 
-Model video aktif yang bisa dipilih. Kolom referensi ditulis `gambar / video / audio`.
+Lima belas model video aktif. Kolom referensi ditulis `gambar / video / audio`.
 
 | `id` | Label | Durasi (detik) | Resolusi | Rasio | Referensi |
 | --- | --- | --- | --- | --- | --- |
 | `seedance-2.5-promo` | Seedance 2.5 Human Face | `5` `10` `15` `30` | `480p` `720p` | `16:9` `9:16` `4:3` `3:4` `1:1` `21:9` | 30 / 1 / 1 |
-| `seedance-2.5-nf` | Seedance 2.5 No Face | `30` saja | `720p` | `16:9` `9:16` | 6 / 3 / 1 |
+| `seedance-2.5-nf` | Seedance 2.5 No Face | `30` saja | `720p` | `16:9` `9:16` | 10 / 3 / 0 |
+| `seedance-2.5-flash` | Seedance 2.5 Flash | `30` saja | `480p` `720p` `1080p` | `16:9` `9:16` `1:1` `4:3` `3:4` `21:9` | 9 / 0 / 0 |
+| `vg-seedance-2.0` | Seedance 2.0 | `15` saja | `720p` | `16:9` `9:16` | 10 / 0 / 0 |
 | `wan-3.0` | Wan 3.0 (Uncensored) | `5` `10` `15` `30` | `480p` `720p` | `16:9` `9:16` `1:1` `4:3` `3:4` | 9 / 3 / 3 |
 | `kling-4.0` | Kling 4.0 | `5` `10` `15` `30` | `720p` `1080p` | `16:9` `9:16` `1:1` `21:9` | 10 / 5 / 0 |
 | `muse-video` | Muse Video | `10` `20` `30` `40` `50` `60` | hanya `720p` | `16:9` `9:16` `1:1` `4:3` `3:4` | 4 / 0 / 0 |
 | `minimax-h3` | MiniMax H3 | `5` `10` `15` | hanya `2K` | `1:1` `3:4` `4:3` `9:16` `16:9` `21:9` | 9 / 3 / 3 |
 | `gemini-omni-flash-1-1` | Gemini Omni 1.1 Flash | `10` saja | `720p` `1080p` | `16:9` `9:16` | 7 / 0 / 0 |
+| `grok-imagine-1.5-fast` | Grok Imagine 1.5 Fast | `6` `10` `15` `20` `30` | `480p` `720p` | `16:9` `9:16` `1:1` `3:2` `2:3` | 7 / 0 / 0 |
 | `kling-mc-3-0` | Kling Motion Control 3.0 Standard | `3`–`30`, dari video referensi | `720p` | `16:9` `9:16` | 1 / 1 / 0 |
 | `kling-mc-3-0-pro` | Kling Motion Control 3.0 Pro | `3`–`30`, dari video referensi | `720p` | `16:9` `9:16` | 1 / 1 / 0 |
-| `vg-motion` | Vidgen Motion | `15` saja | `480p` `720p` | `16:9` `9:16` | 10 / 5 / 0 |
+| `vg-motion` | Vidgen Motion | `15` saja | hanya `720p` | `16:9` `9:16` | 10 / 5 / 0 |
+| `vg-uncensored` | Vidgen Spicy (Uncensored) | `15` `30` | hanya `720p` | `16:9` `9:16` | 10 / 5 / 0 |
 | `gemini-omni-1.2-unlimited` | Gemini Omni 1.2 Flash (Unlimited) | `15` saja | `720p` `1080p` | `16:9` `9:16` `1:1` | 3 / 1 / 0 |
 
 ### Harga video (kredit)
@@ -117,16 +114,20 @@ Harga dicari per kombinasi resolusi:durasi. Angka di bawah adalah isi `priceMatr
 
 | `id` | 480p | 720p | 1080p | 2K |
 | --- | --- | --- | --- | --- |
-| `seedance-2.5-promo` | 5s = 9 · 10s = 18 · 15s = 26 · 30s = 45 | 5s = 18 · 10s = 33 · 15s = 47.5 · 30s = 90 | — | — |
+| `seedance-2.5-promo` | 5s = 8 · 10s = 16 · 15s = 24 · 30s = 48 | 5s = 18 · 10s = 36 · 15s = 55 · 30s = 110 | — | — |
 | `seedance-2.5-nf` | — | 30s = 12 | — | — |
-| `wan-3.0` | 5s = 5 · 10s = 9 · 15s = 14 · 30s = 22 | 5s = 9 · 10s = 14 · 15s = 22 · 30s = 37.5 | — | — |
+| `seedance-2.5-flash` | 30s = 5 | 30s = 7.5 | 30s = 10 | — |
+| `vg-seedance-2.0` | — | 15s = 8 | — | — |
+| `wan-3.0` | 5s = 6 · 10s = 10 · 15s = 15 · 30s = 22.5 | 5s = 10 · 10s = 15 · 15s = 23 · 30s = 37.5 | — | — |
 | `kling-4.0` | — | 5s = 20 · 10s = 40.25 · 15s = 60.25 · 30s = 120.75 | 5s = 30.25 · 10s = 60.25 · 15s = 90.5 · 30s = 181 | — |
 | `muse-video` | — | 10s = 5.5 · 20s = 8.25 · 30s = 8.25 · 40s = 11 · 50s = 14 · 60s = 16.75 | — | — |
 | `minimax-h3` | — | — | — | 5s = 8.5 · 10s = 17.25 · 15s = 25.75 |
 | `gemini-omni-flash-1-1` | — | 10s = 10 | 10s = 15 | — |
-| `kling-mc-3-0` | — | 3 (datar, berapa pun panjang video referensinya) | — | — |
-| `kling-mc-3-0-pro` | — | 6 (datar, berapa pun panjang video referensinya) | — | — |
-| `vg-motion` | 15s = 10 | 15s = 15 | — | — |
+| `grok-imagine-1.5-fast` | 6s = 3 · 10s = 5 · 15s = 7.5 · 20s = 10 · 30s = 15 | 6s = 3 · 10s = 5 · 15s = 7.5 · 20s = 10 · 30s = 15 | — | — |
+| `kling-mc-3-0` | — | 3 kredit per detik (3s = 3 … 30s = 30) | — | — |
+| `kling-mc-3-0-pro` | — | 2 kredit per detik (3s = 6 … 30s = 60) | — | — |
+| `vg-motion` | — | 15s = 15 | — | — |
+| `vg-uncensored` | — | 15s = 22 · 30s = 30 | — | — |
 | `gemini-omni-1.2-unlimited` | — | 0 | 0 | — |
 
 <Tip>
@@ -148,7 +149,7 @@ Vidgen menurunkan mode dari referensi yang kamu kirim — kamu tidak menulis `mo
 
 ## Model Unlimited
 
-Model andalan paket Unlimited adalah **Gemini Omni 1.2 Flash** (`gemini-omni-1.2-unlimited`). Model ini `unlimitedOnly: true` dan `creditsDefault: 0`.
+Paket Unlimited membuka dua model kuota: **Gemini Omni 1.2 Flash** (`gemini-omni-1.2-unlimited`) untuk video dan **Vidgen Image (Unlimited)** (`vidgen-image-unlimited`) untuk gambar. Keduanya `unlimitedOnly: true` dengan `creditsDefault: 0`.
 
 ```json theme={null}
 {
@@ -169,12 +170,32 @@ Model andalan paket Unlimited adalah **Gemini Omni 1.2 Flash** (`gemini-omni-1.2
 }
 ```
 
+```json theme={null}
+{
+  "id": "vidgen-image-unlimited",
+  "label": "Vidgen Image (Unlimited)",
+  "creditsDefault": 0,
+  "unlimitedOnly": true,
+  "priceMatrix": {},
+  "capabilities": {
+    "durations": [],
+    "resolutions": ["1K"],
+    "ratios": ["1:1", "4:3", "3:4"],
+    "maxReferenceImages": 1,
+    "maxReferenceVideos": 0,
+    "maxReferenceAudios": 0,
+    "outputFormats": ["png"]
+  }
+}
+```
+
 Aturannya:
 
 - Akun **tanpa** paket Unlimited aktif yang memanggil id ini dijawab `403`, bukan `402`. Kredit tidak terpotong.
 - Akun **dengan** paket aktif membayar 0 kredit, dari dashboard maupun dari API key.
-- Model ini tetap tunduk pada batas 2 proses bersamaan dan 50 video sukses per hari. Baca [Konkurensi & batas pemakaian](/concepts/concurrency-limits).
+- Keduanya tunduk pada batas 2 proses bersamaan. Batas 50 video sukses per hari hanya menghitung model berkategori `Video`, jadi tidak berlaku untuk Vidgen Image. Baca [Konkurensi & batas pemakaian](/concepts/concurrency-limits).
 - `gemini-omni-1.2-unlimited` memakai antrean 1-20 di Vidgen: pengguna boleh mengantre sampai 20 job, tetapi server mengirimnya satu per satu ke generator.
+- `vidgen-image-unlimited` mendukung text-to-image dan image-to-image dengan **maksimal satu** gambar referensi. Hanya tiga orientasi yang tersedia: `1:1` (1024×1024), `4:3` (1024×768), dan `3:4` (768×1024). Rasio lain ditolak sebelum kredit tersentuh.
 
 ### Watermark dihapus otomatis
 
@@ -198,62 +219,62 @@ Hasil `gemini-omni-1.2-unlimited` **tidak pernah terbit dalam keadaan berwaterma
 
 ## Model gambar
 
-Empat belas model gambar aktif. Semuanya menerima referensi gambar (image-to-image); tidak ada yang menerima video atau audio.
+Enam belas model gambar aktif. Semuanya menerima referensi gambar (image-to-image); tidak ada yang menerima video atau audio.
 
 | `id` | Resolusi | Kualitas | Background | Format | Maks gambar | Rasio |
 | --- | --- | --- | --- | --- | --- | --- |
 | `gpt-image-2.6-sunburst` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | `png` `jpeg` `webp` | 16 | 10 pilihan, tanpa `auto` |
 | `gpt-image-2.6-flare` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | `png` `jpeg` `webp` | 16 | 10 pilihan, tanpa `auto` |
-| `gpt-image-2.5-sunburst` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `transparent` `opaque` | `png` `jpeg` `webp` | 16 | 7 pilihan |
-| `gpt-image-2.5-flare` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `transparent` `opaque` | `png` `jpeg` `webp` | 16 | 7 pilihan |
-| `gpt-image-2.5-sunburst-lite` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | `png` `jpeg` `webp` | 16 | 10 pilihan + `auto` |
-| `gpt-image-2.5-flare-lite` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | `png` `jpeg` `webp` | 16 | 10 pilihan + `auto` |
-| `nano-banana-2.1` | `1K` `2K` `4K` | — | — | `jpeg` `png` | 14 | 10 pilihan |
-| `nano-banana-2` | `512px` `1K` `2K` `4K` | — | — | `png` `jpeg` `webp` | 14 | 10 pilihan |
-| `nano-banana-2-lite` | hanya `1K` | — | — | `png` `jpeg` `webp` | 14 | 10 pilihan |
-| `nano-banana-pro` | `1K` `2K` `4K` | — | — | `png` `jpeg` `webp` | 14 | 10 pilihan |
-| `seedream-5.0-flash` | `1K` `1.5K` `2K` | — | `opaque` `transparent` | `jpeg` `png` | 10 | 8 pilihan |
-| `seedream-5.0-pro` | `1K` `1.5K` `2K` | — | `opaque` `transparent` | `jpeg` `png` | 10 | 8 pilihan |
-| `wan2.7-image-spicy` | `1K` `2K` | — | — | `png` `jpeg` `webp` | 9 | 14 pilihan + `auto` |
-| `wan2.7-image-pro-spicy` | `1K` `2K` `4K` | — | — | `png` `jpeg` `webp` | 9 | 14 pilihan + `auto` |
+| `gpt-image-2.5-sunburst-lite` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | — | 16 | 10 pilihan + `auto` |
+| `gpt-image-2.5-flare-lite` | `1K` `2K` `4K` | `low` `medium` `high` `xhigh` `max` | `auto` `opaque` `transparent` | — | 16 | 10 pilihan + `auto` |
+| `nano-banana-2.1` | `1K` `2K` `4K` | — | — | — | 14 | 10 pilihan |
+| `nano-banana-2` | `512px` `1K` `2K` `4K` | — | — | — | 14 | 14 pilihan |
+| `nano-banana-2-lite` | hanya `1K` | — | — | — | 14 | 10 pilihan |
+| `nano-banana-pro` | `1K` `2K` `4K` | — | — | — | 8 | 10 pilihan |
+| `seedream-5.0-flash` | `1K` `1.5K` `2K` | — | `opaque` `transparent` | — | 10 | 8 pilihan |
+| `seedream-5.0-pro` | `1K` `1.5K` `2K` | — | `opaque` `transparent` | — | 10 | 8 pilihan |
+| `seedream-5.5` | `1K` `1.5K` `2K` | — | `opaque` `transparent` | — | 10 | 8 pilihan |
+| `wan2.7-image-spicy` | `1K` `2K` | — | — | — | 9 | 14 pilihan |
+| `wan2.7-image-pro-spicy` | `1K` `2K` `4K` | — | — | — | 9 | 14 pilihan |
+| `qwen-image-3.0` | `1K` `2K` | — | — | — | 3 | 20 pilihan + `auto` |
+| `qwen-image-3.0-pro` | `1K` `2K` | — | — | — | 3 | 20 pilihan + `auto` |
+| `vidgen-image-unlimited` | hanya `1K` | — | — | `png` | 1 | `1:1` `4:3` `3:4` |
 
 Daftar rasio lengkap:
 
-- **10 pilihan** (keluarga GPT Image, Nano Banana): `1:1` `2:3` `3:2` `3:4` `4:3` `4:5` `5:4` `9:16` `16:9` `21:9`
-- **7 pilihan** (GPT Image 2.5 non-Lite): `1:1` `3:2` `2:3` `4:3` `3:4` `16:9` `9:16`
+- **10 pilihan** (GPT Image 2.6, Nano Banana 2.1 / 2 Lite / Pro): `1:1` `2:3` `3:2` `3:4` `4:3` `4:5` `5:4` `9:16` `16:9` `21:9`
+- **10 pilihan + `auto`** (GPT Image 2.5 Lite): daftar di atas ditambah `auto`
+- **14 pilihan** (Wan 2.7 Spicy, Nano Banana 2): daftar 10 di atas ditambah `1:4` `4:1` `1:8` `8:1`
 - **8 pilihan** (Seedream): `1:1` `4:3` `3:4` `16:9` `9:16` `2:3` `3:2` `21:9`
-- **14 pilihan** (Wan 2.7 Spicy): 10 pilihan di atas ditambah `1:4` `4:1` `1:8` `8:1`
+- **20 pilihan + `auto`** (Qwen Image 3.0): daftar 10 di atas ditambah `1:2` `2:1` `1:3` `3:1` `1:4` `4:1` `1:8` `8:1` `9:21` dan `auto`
+- **3 pilihan** (Vidgen Image Unlimited): `1:1` `4:3` `3:4`
 
 `auto` selalu diterima server pada model apa pun, tetapi hanya model yang mencantumkannya di `capabilities.ratios` yang benar-benar menuruti rasio gambar masukan. Pada model lain, `auto` berarti kamu menyerahkan pilihan rasio ke generator.
 
 ### Harga gambar (kredit)
 
-Pada keluarga GPT Image, **kualitas ikut menentukan harga**. Kunci `priceMatrix`-nya berbentuk `quality:resolution`.
-
-| `id` | `low` | `medium` | `high` | `xhigh` | `max` | Tanpa `quality` |
-| --- | --- | --- | --- | --- | --- | --- |
-| `gpt-image-2.6-sunburst` / `-flare` | 1K=1 · 2K=2 · 4K=3 | 1K=2 · 2K=3 · 4K=5 | 1K=2 · 2K=4 · 4K=6 | 1K=3 · 2K=6 · 4K=10 | 1K=7 · 2K=13 · 4K=21 | 1K=2 · 2K=3 · 4K=5 |
-| `gpt-image-2.5-sunburst` / `-flare` | 1K=1 | 1K=1 | 2K=4 | 1K=3 · 2K=6 · 4K=10 | 4K=21 | 1K=1 · 2K=4 · 4K=10 |
-| `gpt-image-2.5-sunburst-lite` | — | — | — | — | — | 1K=2 · 2K=3 · 4K=5 |
-| `gpt-image-2.5-flare-lite` | — | — | — | — | — | 1K=1 · 2K=2 · 4K=3 |
-
-Kolom kualitas bertanda `—` pada dua varian Lite bukan berarti parameter `quality` ditolak. Modelnya tetap mendeklarasikan `capabilities.qualities`, jadi nilainya diteruskan ke generator dan memengaruhi hasil — hanya saja tidak ada kunci `quality:resolution` di matriksnya, sehingga tagihan tetap mengikuti resolusi.
-
-Model GPT Image 2.5 non-Lite punya matriks yang **jarang**: tidak semua kombinasi kualitas×resolusi punya harga sendiri. Kombinasi yang tidak ada jatuh ke override resolusi tunggal, lalu ke `creditsDefault`. Misalnya `high:4K` tidak ada di matriks, jadi yang dipakai adalah `4K = 10`.
+Semua model gambar aktif dihargai per resolusi. `quality` tetap diteruskan ke generator, tetapi tidak mengubah tagihan pada katalog saat ini.
 
 | `id` | 512px | 1K | 1.5K | 2K | 4K |
 | --- | --- | --- | --- | --- | --- |
-| `nano-banana-2.1` | — | 1 | — | 2 | 2 |
-| `nano-banana-2` | 2 | 2 | — | 3 | 3 |
-| `nano-banana-2-lite` | — | 1 | — | — | — |
-| `nano-banana-pro` | — | 3 | — | 4 | 5 |
-| `seedream-5.0-flash` | — | 1 | 1 | 1 | — |
-| `seedream-5.0-pro` | — | 2 | 2 | 3 | — |
-| `wan2.7-image-spicy` | — | 2 | — | 2 | — |
-| `wan2.7-image-pro-spicy` | — | 3 | — | 3 | 3 |
+| `gpt-image-2.6-sunburst` / `-flare` | — | 0.6 | — | 0.8 | 1.1 |
+| `gpt-image-2.5-sunburst-lite` | — | 0.8 | — | 1.7 | 3.3 |
+| `gpt-image-2.5-flare-lite` | — | 0.6 | — | 1.1 | 2.2 |
+| `nano-banana-2.1` | — | 0.6 | — | 1.1 | 1.4 |
+| `nano-banana-2` | 1.1 | 1.1 | — | 1.7 | 2.2 |
+| `nano-banana-2-lite` | — | 0.6 | — | — | — |
+| `nano-banana-pro` | — | 1.7 | — | 2.5 | 3.3 |
+| `seedream-5.0-flash` | — | 0.5 | 0.5 | 0.5 | — |
+| `seedream-5.0-pro` | — | 1 | 1 | 1.9 | — |
+| `seedream-5.5` | — | 0.6 | 0.6 | 0.7 | — |
+| `wan2.7-image-spicy` | — | 0.8 | — | 0.8 | — |
+| `wan2.7-image-pro-spicy` | — | 2.1 | — | 2.1 | 2.1 |
+| `qwen-image-3.0` | — | 0.8 | — | 0.8 | — |
+| `qwen-image-3.0-pro` | — | 1.1 | — | 2.1 | — |
+| `vidgen-image-unlimited` | — | 0 | — | — | — |
 
 <Warning>
-  Selisih harga kualitas bisa lebih dari sepuluh kali pada resolusi yang sama: `low:1K` = 1 kredit versus `max:4K` = 21 kredit pada GPT Image 2.6. Jangan menampilkan `creditsDefault` sebagai "harga mulai dari" tanpa menyebut kualitasnya, dan jangan mengasumsikan itu plafon biaya.
+  Jangan menampilkan `creditsDefault` sebagai "harga mulai dari" tanpa menyebut resolusi. Beberapa model punya selisih harga per tingkat resolusi, dan `vidgen-image-unlimited` bernilai 0 hanya karena tagihannya masuk kuota Unlimited — bukan gratis untuk semua akun.
 </Warning>
 
 ### Contoh request gambar lengkap
@@ -280,7 +301,25 @@ curl -X POST https://vidgen.id/api/v1/generate \
   }'
 ```
 
-Tagihan request itu `high:2K` = **4 kredit**, bukan `creditsDefault` 1. Referensi tidak menambah biaya saat ini.
+Tagihan request itu adalah harga `2K` = **0.8 kredit**. `quality: high` tetap diteruskan ke generator, tetapi tidak menambah biaya. Referensi tidak menambah biaya saat ini.
+
+### Contoh image-to-image Vidgen Image (Unlimited)
+
+```bash theme={null}
+curl -X POST https://vidgen.id/api/v1/generate \
+  -H "Authorization: Bearer vg_KEY_KAMU" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "vidgen-image-unlimited",
+    "prompt": "ubah menjadi gaya foto editorial dengan latar studio polos",
+    "parameters": { "ratio": "3:4" },
+    "references": [
+      { "url": "https://cdn.tokokamu.com/model-1.png", "type": "image" }
+    ]
+  }'
+```
+
+Model ini gratis untuk paket Unlimited aktif, menerima maksimal satu gambar referensi, dan hanya melayani `1:1`, `4:3`, atau `3:4`.
 
 ## Urutan pencarian harga
 
@@ -290,7 +329,7 @@ Server meniru urutan ini persis. Tiru di sisi kamu kalau ingin menampilkan perki
 quality:resolution  →  resolution:duration  →  duration  →  resolution  →  creditsDefault
 ```
 
-Kunci durasi dicoba dalam beberapa ejaan (`"15"`, `"15s"`) dan kunci kombinasi dicoba dalam dua urutan (`"720p:15"` dan `"15:720p"`), jadi kamu tidak perlu menormalkan sendiri. Surcharge referensi saat ini **0** untuk semua jenis dan jumlah referensi.
+Kunci durasi dicoba dalam beberapa ejaan (`"15"`, `"15s"`) dan kunci kombinasi dicoba dalam dua urutan (`"720p:15"` dan `"15:720p"`), jadi kamu tidak perlu menormalkan sendiri. Saat ini tidak ada model aktif yang memakai kunci `quality:resolution`, jadi tagihan gambar selalu jatuh ke `resolution`. Surcharge referensi saat ini **0** untuk semua jenis dan jumlah referensi.
 
 ## Pencocokan id
 
@@ -317,7 +356,7 @@ Model dengan `capabilities.feature: "motion"` punya aturan sendiri:
 - `parameters.orientation` memilih apakah rasio keluaran mengikuti gambar karakter (`image`) atau video gerakan (`video`).
 - Batas durasi referensi lebih longgar daripada model biasa: 3–30 detik, dan video tidak dipotong otomatis. Lihat [Media referensi](/concepts/reference-media).
 
-Dua model aktif di kelompok ini: `kling-mc-3-0` (durasi dari video) dan `vg-motion` (durasi dipilih, 15 detik). `capabilities.feature` dan `capabilities.motion` ikut dikirim di katalog, jadi kamu bisa memfilter secara programatik:
+Tiga model aktif di kelompok ini: `kling-mc-3-0`, `kling-mc-3-0-pro` (durasi dari video referensi), dan `vg-motion` (durasi dipilih, 15 detik, wajib satu video referensi). `capabilities.feature` dan `capabilities.motion` ikut dikirim di katalog, jadi kamu bisa memfilter secara programatik:
 
 ```js theme={null}
 const motionModels = models.video.filter((m) => m.capabilities.feature === "motion");
@@ -328,7 +367,7 @@ for (const m of motionModels) {
 }
 ```
 
-Sebagian model motion menambahkan `durationFromReference` di objek itu. Bila kuncinya tidak ada, perlakukan durasi sebagai berasal dari video referensi — itu perilaku bawaan kelompok motion.
+Sebagian model motion menambahkan `durationFromReference` di objek itu. Bila kuncinya tidak ada, perlakukan durasi sebagai berasal dari video referensi — itu perilaku bawaan kelompok motion. `vg-motion` justru mengirim `durationFromReference: false` karena durasinya tetap 15 detik.
 
 ## Audio
 
